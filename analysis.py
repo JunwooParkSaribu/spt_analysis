@@ -93,9 +93,9 @@ for idx in range(len(total_states)):
 """
 From here, plot functions.
 Data is stored in 
-1.analysis_data(dict containing data)
-2.state_markov(matrix containing transition probability)
-3.state_graph(network build from transitions between states(weight: nb of occurence of transitions))
+1.analysis_data(DataFrame: contains data)
+2.state_markov(matrix: contains transition probability)
+3.state_graph(network: built from transitions between states(weight: nb of occurence of transitions))
 """
 #p1: kde(kernel density estimation) plot of mean jump distance grouped by state.
 plt.figure(f'p1')
