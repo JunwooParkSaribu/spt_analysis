@@ -33,6 +33,7 @@ for st in total_states:
     analysis_data[f'K'] = []
     analysis_data[f'alpha'] = []
     analysis_data[f'state'] = []
+    analysis_data[f'length'] = []
 
 
 # get data from trajectories
@@ -77,6 +78,7 @@ for traj_idx in traj_indices:
             analysis_data[f'K'].append(sub_trajectory.K.iloc[0])
             analysis_data[f'alpha'].append(sub_trajectory.alpha.iloc[0])
             analysis_data[f'state'].append(sub_trajectory.state.iloc[0])
+            analysis_data[f'length'].append(sub_trajectory.frame.iloc[-1] - sub_trajectory.frame.iloc[0])
 
 
 # normalize markov chain
