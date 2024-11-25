@@ -4,12 +4,17 @@ import matplotlib.pyplot as plt
 from modules.preprocessing import preprocessing
 
 
+
 PIXELMICRONS = 0.16
 FRAMERATE = 0.01
 CUTOFF = 5
 CONDITIONS = ['condition1', 'condition2']
 
 
+
+"""
+We concatenate different conditions of Dataframe into one for further analysis.
+"""
 analysis_data1 = pd.DataFrame({})
 analysis_data2 = pd.DataFrame({})
 state_markovs = []
@@ -18,16 +23,16 @@ for condition in CONDITIONS:
     data1, data2, state_markov, state_graph = preprocessing(folder=condition, pixelmicrons=PIXELMICRONS, framerate=FRAMERATE, cutoff=CUTOFF)
     data1['condition'] = [condition] * len(data1)
     data2['condition'] = [condition] * len(data2)
-
     analysis_data1 = pd.concat([analysis_data1, data1], ignore_index=True)
     analysis_data2 = pd.concat([analysis_data2, data2], ignore_index=True)
     state_markovs.append(state_markov)
     state_graphs.append(state_graph)
+    
 
 
 """
-From here, plot functions.
-Data is stored in 
+From here, we treat data to make plots or print results.
+Data is stored as
 1.analysis_data1(DataFrame: contains data of mean_jump_distance, K, alpha, state, length, traj_id, condition)
 2.analysis_data2(DataFrame: contains data of displacments, state, condition)
 3.state_markovs(matrix: contains transition probability of conditions)
@@ -35,6 +40,7 @@ Data is stored in
 """
 print(f'\nanalysis_data1:\n', analysis_data1)
 print(f'\nanalysis_data2:\n', analysis_data2)
+
 
 #p1: kde(kernel density estimation) plot of mean jump distance grouped by state.
 plt.figure(f'p1')
@@ -53,4 +59,6 @@ p2.set_title(f'population of states')
 plt.figure(f'p3')
 p3 = sns.histplot(data=analysis_data2, x='displacements', stat='percent', hue='condition', multiple='stack', bins=100)
 p3.set_title(f'displacement histogram')
+
+
 plt.show()

@@ -75,7 +75,7 @@ def preprocessing(folder, pixelmicrons, framerate, cutoff):
                 analysis_data1[f'K'].append(sub_trajectory.K.iloc[0])
                 analysis_data1[f'alpha'].append(sub_trajectory.alpha.iloc[0])
                 analysis_data1[f'state'].append(sub_trajectory.state.iloc[0])
-                analysis_data1[f'length'].append(sub_trajectory.frame.iloc[-1] - sub_trajectory.frame.iloc[0] + 1)
+                analysis_data1[f'length'].append((sub_trajectory.frame.iloc[-1] - sub_trajectory.frame.iloc[0] + 1) * framerate)
                 analysis_data1[f'traj_id'].append(sub_trajectory.traj_idx.iloc[0])
 
                 analysis_data2[f'displacements'].extend(list(jump_distances))
@@ -91,7 +91,7 @@ def preprocessing(folder, pixelmicrons, framerate, cutoff):
         state_markov[idx] /= np.sum(state_markov[idx])
 
 
-    analysis_data1 = pd.DataFrame(analysis_data1).astype({'state': int, 'length': int, 'traj_id':str})
+    analysis_data1 = pd.DataFrame(analysis_data1).astype({'state': int, 'length': float, 'traj_id':str})
     analysis_data2 = pd.DataFrame(analysis_data2)
 
     return analysis_data1, analysis_data2, state_markov, state_graph

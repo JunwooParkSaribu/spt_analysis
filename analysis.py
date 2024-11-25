@@ -9,20 +9,38 @@ CUTOFF = 5
 FOLDER = 'condition1'
 
 
-# Read data from FOLDER and preprocess the data.
+"""
+preprocessing generates 4 data.
+@params: data folder path, pixel microns, frame rate, cutoff
+@output: DataFrame, DataFrame, ndarray, networkx grpah
+
+preprocessing includes below steps.
+1. exclude the trajectory where length is shorter than CUTOFF
+2. conver from pixel unit to micrometer unit with PIXELMICRONS and FRAMERATE
+3. generate 2 DataFrames, 1 ndarray representation of markovchain, 1 graph respresentation of markovchain
+"""
 analysis_data1, analysis_data2, state_markov, state_graph = preprocessing(folder=FOLDER, pixelmicrons=PIXELMICRONS, framerate=FRAMERATE, cutoff=CUTOFF)
 
 
 """
-From here, plot functions.
-Data is stored in 
+From here, we treat data to make plots or print results.
+Data is stored as
 1.analysis_data1(DataFrame: contains data of mean_jump_distance, K, alpha, state, length, traj_id)
 2.analysis_data2(DataFrame: contains data of displacments, state)
 3.state_markov(matrix: contains transition probability)
 4.state_graph(network: built from transitions between states(weight: nb of occurence of transitions))
+
+Unit: 
+K: generalized diffusion coefficient, um^2/s^alpha
+alpha: anomalous diffusion exponent, real number between 0 and 2
+mean_jump_disatnce: average of jump distances of single trajectory
+state: states defined in BI-ADD
+length: length of trajectory, second
+displacements: displacements of all trajectories, um
 """
 print(f'\nanalysis_data1:\n', analysis_data1)
 print(f'\nanalysis_data2:\n', analysis_data2)
+
 
 #p1: kde(kernel density estimation) plot of mean jump distance grouped by state.
 plt.figure(f'p1')
@@ -51,7 +69,14 @@ p4.set_title(f'state transition probability')
 
 #p5: displacement histogram
 plt.figure(f'p5')
-p5 = sns.histplot(data=analysis_data2, x='displacements', stat='percent', hue='state', bins=100)
+p5 = sns.histplot(data=analysis_data2, x='displacements', stat='percent', hue='state', bins=50, kde=True)
 p5.set_title(f'displacement histogram')
-plt.show()
 
+
+#p6: displacement histogram
+plt.figure(f'p6')
+p6 = sns.histplot(data=analysis_data1, x='length', stat='percent', hue='state', bins=50, kde=True)
+p6.set_title(f'trajectory length histogram')
+
+
+plt.show()
