@@ -34,6 +34,7 @@ for st in total_states:
     analysis_data[f'alpha'] = []
     analysis_data[f'state'] = []
     analysis_data[f'length'] = []
+    analysis_data[f'traj_id'] = []
 
 
 # get data from trajectories
@@ -79,7 +80,8 @@ for traj_idx in traj_indices:
             analysis_data[f'alpha'].append(sub_trajectory.alpha.iloc[0])
             analysis_data[f'state'].append(sub_trajectory.state.iloc[0])
             analysis_data[f'length'].append(sub_trajectory.frame.iloc[-1] - sub_trajectory.frame.iloc[0])
-
+            analysis_data[f'traj_id'].append(sub_trajectory.traj_idx.iloc[0])
+analysis_data = pd.DataFrame(analysis_data).astype({'state': int, 'length': int, 'traj_id':str})
 
 # normalize markov chain
 for edge in state_graph.edges:
@@ -91,7 +93,6 @@ for idx in range(len(total_states)):
     state_markov[idx] /= np.sum(state_markov[idx])
 
 
-
 """
 From here, plot functions.
 Data is stored in 
@@ -99,6 +100,8 @@ Data is stored in
 2.state_markov(matrix: contains transition probability)
 3.state_graph(network: built from transitions between states(weight: nb of occurence of transitions))
 """
+print(analysis_data)
+
 #p1: kde(kernel density estimation) plot of mean jump distance grouped by state.
 plt.figure(f'p1')
 p1 = sns.kdeplot(analysis_data, x=f'mean_jump_d', hue='state')
