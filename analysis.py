@@ -79,7 +79,7 @@ for traj_idx in traj_indices:
             analysis_data[f'K'].append(sub_trajectory.K.iloc[0])
             analysis_data[f'alpha'].append(sub_trajectory.alpha.iloc[0])
             analysis_data[f'state'].append(sub_trajectory.state.iloc[0])
-            analysis_data[f'length'].append(sub_trajectory.frame.iloc[-1] - sub_trajectory.frame.iloc[0])
+            analysis_data[f'length'].append(sub_trajectory.frame.iloc[-1] - sub_trajectory.frame.iloc[0] + 1)
             analysis_data[f'traj_id'].append(sub_trajectory.traj_idx.iloc[0])
 analysis_data = pd.DataFrame(analysis_data).astype({'state': int, 'length': int, 'traj_id':str})
 
