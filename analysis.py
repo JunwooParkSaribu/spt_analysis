@@ -1,3 +1,4 @@
+import math
 import numpy as np
 import pandas as pd
 import seaborn as sns
@@ -9,11 +10,12 @@ from modules.fileIO import DataLoad
 
 PIXELMICRONS = 0.16
 FRAMERATE = 0.01
-CUTOFF = 5  # the lowest value is 5
+CUTOFF = 5
+FOLDER = 'condition1'
 
 
 # load FreeTrace+Bi-ADD data without NaN (NaN where trajectory length is shorter than 5, default in BI-ADD)
-data = DataLoad.read_multiple_h5s('condition1').dropna()
+data = DataLoad.read_multiple_h5s(FOLDER).dropna()
 # using dictionary to convert specific columns
 convert_dict = {'state': int}
 data = data.astype(convert_dict)
@@ -27,14 +29,16 @@ state_graph = nx.DiGraph()
 state_graph.add_nodes_from(total_states)
 state_graph.add_edges_from(product_states, weight=0)
 state_markov = [[0 for _ in range(len(total_states))] for _ in range(len(total_states))]
-analysis_data = {}
-for st in total_states:
-    analysis_data[f'mean_jump_d'] = []
-    analysis_data[f'K'] = []
-    analysis_data[f'alpha'] = []
-    analysis_data[f'state'] = []
-    analysis_data[f'length'] = []
-    analysis_data[f'traj_id'] = []
+analysis_data1 = {}
+analysis_data1[f'mean_jump_d'] = []
+analysis_data1[f'K'] = []
+analysis_data1[f'alpha'] = []
+analysis_data1[f'state'] = []
+analysis_data1[f'length'] = []
+analysis_data1[f'traj_id'] = []
+analysis_data2 = {}
+analysis_data2[f'displacements'] = []
+analysis_data2[f'state'] = []
 
 
 # get data from trajectories
@@ -72,16 +76,18 @@ for traj_idx in traj_indices:
             sub_trajectory.y -= sub_trajectory.y.iloc[0]
 
             # calcultae jump distances
-            jump_distances = np.sqrt(sub_trajectory.x ** 2 + sub_trajectory.y ** 2)
+            jump_distances = np.sqrt((sub_trajectory.x.iloc[1:].to_numpy() - sub_trajectory.x.iloc[:-1].to_numpy()) ** 2 + (sub_trajectory.y.iloc[1:].to_numpy() - sub_trajectory.y.iloc[:-1].to_numpy()) ** 2)
 
             # add data for the visualization
-            analysis_data[f'mean_jump_d'].append(jump_distances.mean())
-            analysis_data[f'K'].append(sub_trajectory.K.iloc[0])
-            analysis_data[f'alpha'].append(sub_trajectory.alpha.iloc[0])
-            analysis_data[f'state'].append(sub_trajectory.state.iloc[0])
-            analysis_data[f'length'].append(sub_trajectory.frame.iloc[-1] - sub_trajectory.frame.iloc[0] + 1)
-            analysis_data[f'traj_id'].append(sub_trajectory.traj_idx.iloc[0])
-analysis_data = pd.DataFrame(analysis_data).astype({'state': int, 'length': int, 'traj_id':str})
+            analysis_data1[f'mean_jump_d'].append(jump_distances.mean())
+            analysis_data1[f'K'].append(sub_trajectory.K.iloc[0])
+            analysis_data1[f'alpha'].append(sub_trajectory.alpha.iloc[0])
+            analysis_data1[f'state'].append(sub_trajectory.state.iloc[0])
+            analysis_data1[f'length'].append(sub_trajectory.frame.iloc[-1] - sub_trajectory.frame.iloc[0] + 1)
+            analysis_data1[f'traj_id'].append(sub_trajectory.traj_idx.iloc[0])
+
+            analysis_data2[f'displacements'].extend(list(jump_distances))
+            analysis_data2[f'state'].extend([sub_trajectory.state.iloc[0]] * len(list(jump_distances)))
 
 # normalize markov chain
 for edge in state_graph.edges:
@@ -93,31 +99,39 @@ for idx in range(len(total_states)):
     state_markov[idx] /= np.sum(state_markov[idx])
 
 
+analysis_data1 = pd.DataFrame(analysis_data1).astype({'state': int, 'length': int, 'traj_id':str})
+#displacements = np.array(displacements).reshape(-1)
+analysis_data2 = pd.DataFrame(analysis_data2)
+
+
 """
 From here, plot functions.
 Data is stored in 
-1.analysis_data(DataFrame: contains data)
-2.state_markov(matrix: contains transition probability)
-3.state_graph(network: built from transitions between states(weight: nb of occurence of transitions))
+1.analysis_data1(DataFrame: contains data of mean_jump_distance, K, alpha, state, length, traj_id)
+2.analysis_data2(DataFrame: contains data of displacments, state)
+3.state_markov(matrix: contains transition probability)
+4.state_graph(network: built from transitions between states(weight: nb of occurence of transitions))
+5.displacements(list: contains displacements of data)
 """
-print(analysis_data)
+print(f'\nanalysis_data1:\n', analysis_data1)
+print(f'\nanalysis_data2:\n', analysis_data2)
 
 #p1: kde(kernel density estimation) plot of mean jump distance grouped by state.
 plt.figure(f'p1')
-p1 = sns.kdeplot(analysis_data, x=f'mean_jump_d', hue='state')
+p1 = sns.kdeplot(analysis_data1, x=f'mean_jump_d', hue='state')
 plt.xlabel(f'mean_jump_distance for each state')
 p1.set_title(f'mean_jump_distance')
 
 
 #p2: joint distribution plot(kde) of alpha(x-axis) and K(y-axis) for each state
-p2 = sns.jointplot(data=analysis_data, x=f"alpha", y=f"K", kind='kde', hue='state')
+p2 = sns.jointplot(data=analysis_data1, x=f"alpha", y=f"K", kind='kde', hue='state')
 plt.xlabel(f'alpha')
 plt.ylabel(f'K')
 p2.fig.suptitle(f'alpha, K distribution for each state')
 
 #p3: histogram of states
 plt.figure(f'p3')
-p3 = sns.histplot(data=analysis_data, x="state", stat='percent', hue='state')
+p3 = sns.histplot(data=analysis_data1, x="state", stat='percent', hue='state')
 p3.set_title(f'population of states')
 
 
@@ -125,5 +139,11 @@ p3.set_title(f'population of states')
 plt.figure(f'p4')
 p4 = sns.heatmap(state_markov, annot=True)
 p4.set_title(f'state transition probability')
+
+
+#p5: displacement histogram
+plt.figure(f'p5')
+p5 = sns.histplot(data=analysis_data2, x='displacements', stat='percent', hue='state', bins=100)
+p5.set_title(f'displacement histogram')
 plt.show()
 
