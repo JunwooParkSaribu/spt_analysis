@@ -17,8 +17,9 @@ def read_multiple_h5s(path):
     dfs = []
     meta_info = []
     files_not_same_conditions = []
+    prefix = f'_biadd'
 
-    f_list = glob.glob(f'{path}/*_traces_biadd.h5')
+    f_list = glob.glob(f'{path}/*{prefix}.h5')
     for f_idx, file in enumerate(f_list):
         df, meta = read_h5(file)
         if f_idx != 0:
@@ -26,14 +27,14 @@ def read_multiple_h5s(path):
                 files_not_same_conditions.append(file)
                 continue
             else:
-                pure_f_name = file.split('/')[-1].split('_traces_biadd.h5')[0]
+                pure_f_name = file.split('/')[-1].split(f'{prefix}.h5')[0]
                 df['filename'] = [pure_f_name] * len(df['traj_idx'])
                 traj_indices = df['traj_idx']
                 traj_indices = [f'{pure_f_name}_{idx}' for idx in traj_indices]
                 df['traj_idx'] = traj_indices
         else:
             meta_info.append(meta['sample_id'])
-            pure_f_name = file.split('/')[-1].split('_traces_biadd.h5')[0]
+            pure_f_name = file.split('/')[-1].split(f'{prefix}.h5')[0]
             df['filename'] = [pure_f_name] * len(df['traj_idx'])
             traj_indices = df['traj_idx']
             traj_indices = [f'{pure_f_name}_{idx}' for idx in traj_indices]
