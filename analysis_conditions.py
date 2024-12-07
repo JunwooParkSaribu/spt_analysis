@@ -4,11 +4,14 @@ import matplotlib.pyplot as plt
 from modules.preprocessing import preprocessing
 
 
-
+"""
+Option settings for data analysis.
+"""
 PIXELMICRONS = 0.16
 FRAMERATE = 0.01
 CUTOFF = 5
 CONDITIONS = ['condition1', 'condition2']
+number_of_bins = 50
 
 
 
@@ -44,10 +47,9 @@ print(f'\nanalysis_data2:\n', analysis_data2)
 
 #p1: kde(kernel density estimation) plot of mean jump distance grouped by state.
 plt.figure(f'p1')
-p1 = sns.kdeplot(analysis_data1, x=f'mean_jump_d', hue='condition')
+p1 = sns.histplot(analysis_data1, x=f'mean_jump_d', stat='percent', hue='condition', bins=number_of_bins, kde=True)
 plt.xlabel(f'mean_jump_distance for each state')
 p1.set_title(f'mean_jump_distance')
-
 
 #p2: histogram of states
 plt.figure(f'p2')
@@ -57,7 +59,7 @@ p2.set_title(f'population of states')
 
 #p3: displacement histogram
 plt.figure(f'p3')
-p3 = sns.histplot(data=analysis_data2, x='displacements', stat='percent', hue='condition', multiple='stack', bins=100)
+p3 = sns.histplot(data=analysis_data2, x='displacements', stat='percent', hue='condition', multiple='stack', bins=number_of_bins)
 p3.set_title(f'displacement histogram')
 
 
