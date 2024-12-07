@@ -12,6 +12,7 @@ CUTOFF = 5
 FOLDER = 'condition1'
 number_of_bins = 50
 figure_resolution_in_dpi = 128
+figure_font_size = 20
 
 
 """
@@ -53,6 +54,8 @@ plt.figure(f'p1', dpi=figure_resolution_in_dpi)
 p1 = sns.histplot(analysis_data1, x=f'mean_jump_d', stat='percent', hue='state', bins=number_of_bins, kde=True)
 plt.xlabel(f'mean_jump_distance')
 p1.set_title(f'mean_jump_distance for each state')
+plt.yticks(fontsize=figure_font_size)
+plt.xticks(fontsize=figure_font_size)
 
 
 #p2: joint distribution plot(kde) of alpha(x-axis) and K(y-axis) for each state
@@ -60,30 +63,41 @@ p2 = sns.jointplot(data=analysis_data1, x=f"alpha", y=f"K", kind='kde', hue='sta
 plt.xlabel(f'alpha')
 plt.ylabel(f'K')
 p2.fig.suptitle(f'alpha, K distribution for each state')
+plt.yticks(fontsize=figure_font_size)
+plt.xticks(fontsize=figure_font_size)
 
 
 #p3: histogram of states
 plt.figure(f'p3', dpi=figure_resolution_in_dpi)
 p3 = sns.histplot(data=analysis_data1, x="state", stat='percent', hue='state')
 p3.set_title(f'population of states')
+plt.yticks(fontsize=figure_font_size)
+plt.xticks(fontsize=figure_font_size)
 
 
 #p4: state transition probability
 plt.figure(f'p4', dpi=figure_resolution_in_dpi)
 p4 = sns.heatmap(state_markov, annot=True)
 p4.set_title(f'state transition probability')
+plt.yticks(fontsize=figure_font_size)
+plt.xticks(fontsize=figure_font_size)
 
 
 #p5: displacement histogram
 plt.figure(f'p5', dpi=figure_resolution_in_dpi)
 p5 = sns.histplot(data=analysis_data2, x='displacements', stat='percent', hue='state', bins=number_of_bins, kde=True)
 p5.set_title(f'displacement histogram')
+plt.yticks(fontsize=figure_font_size)
+plt.xticks(fontsize=figure_font_size)
 
 
 #p6: trajectory length(frame) histogram
 plt.figure(f'p6', dpi=figure_resolution_in_dpi)
 p6 = sns.histplot(data=analysis_data1, x='length', stat='percent', hue='state', bins=number_of_bins, kde=True)
 p6.set_title(f'trajectory length histogram')
+plt.yticks(fontsize=figure_font_size)
+plt.xticks(fontsize=figure_font_size)
+plt.xticks(rotation=90)
 
 
 plt.show()
