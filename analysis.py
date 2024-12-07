@@ -1,12 +1,12 @@
 import seaborn as sns
 import matplotlib.pyplot as plt
-from modules.preprocessing import preprocessing
+from modules.preprocessing import preprocessing, get_groundtruth_with_label
 
 
 PIXELMICRONS = 0.16
 FRAMERATE = 0.01
 CUTOFF = 5
-FOLDER = 'condition1'
+FOLDER = 'condition0'
 
 
 """

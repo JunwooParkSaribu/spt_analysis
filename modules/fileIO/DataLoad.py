@@ -1,8 +1,5 @@
-import os
-import csv
 import pandas as pd
 import numpy as np
-from itertools import islice
 import glob
 
 
@@ -10,6 +7,8 @@ def read_h5(file):
     with pd.HDFStore(file) as hdf_store:
         metadata = hdf_store.get_storer('data').attrs.metadata
         df_read = hdf_store.get('data')
+    convert_dict = {'state': int, 'frame': int, 'traj_idx': int}
+    df_read = df_read.astype(convert_dict)
     return df_read, metadata
 
 
@@ -50,3 +49,33 @@ def read_multiple_h5s(path):
         print('*****************************************************************************************')
         
     return grouped_df
+
+
+def andi2_label_parser(path):
+    andi_dict = {}
+    with open(path, 'r') as f:
+        lines = f.readlines()
+        for line in lines:
+            line = line.strip().split('\n')[0].split(',')
+            traj_idx = line[0]
+            Ks = []
+            alphas = []
+            states = []
+            cps = []
+            for K, alpha, state, cp in np.array(line[1:], dtype=object).reshape(-1, 4):
+                Ks.append(float(K))
+                alphas.append(float(alpha))
+                states.append(int(eval(state)))
+                cps.append(int(eval(cp)))
+            andi_dict[f'{path.split('.txt')[0].split('/')[-1]}@{traj_idx}'] = np.array([Ks, alphas, states, cps]).T
+    return andi_dict
+
+
+def read_mulitple_andi_labels(path):
+    andi_dicts = {}
+    prefix = 'fov_*'
+    f_list = glob.glob(f'{path}/*{prefix}.txt')
+    for f_idx, file in enumerate(f_list):
+        andi_dict = andi2_label_parser(file)
+        andi_dicts |= andi_dict
+    return andi_dicts
