@@ -3,10 +3,14 @@ import matplotlib.pyplot as plt
 from modules.preprocessing import preprocessing, get_groundtruth_with_label
 
 
+"""
+Option settings for data analysis.
+"""
 PIXELMICRONS = 0.16
 FRAMERATE = 0.01
 CUTOFF = 5
-FOLDER = 'condition0'
+FOLDER = 'condition1'
+number_of_bins = 50
 
 
 """
@@ -20,6 +24,7 @@ preprocessing includes below steps.
 3. generate 2 DataFrames, 1 ndarray representation of markovchain, 1 graph respresentation of markovchain
 """
 analysis_data1, analysis_data2, state_markov, state_graph = preprocessing(folder=FOLDER, pixelmicrons=PIXELMICRONS, framerate=FRAMERATE, cutoff=CUTOFF)
+#analysis_data1, analysis_data2, state_markov, state_graph = get_groundtruth_with_label(folder=FOLDER, label_folder='dummy', pixelmicrons=PIXELMICRONS, framerate=FRAMERATE, cutoff=CUTOFF)
 
 
 """
@@ -30,7 +35,7 @@ Data is stored as
 3.state_markov(matrix: contains transition probability)
 4.state_graph(network: built from transitions between states(weight: nb of occurence of transitions))
 
-Unit: 
+Units: 
 K: generalized diffusion coefficient, um^2/s^alpha
 alpha: anomalous diffusion exponent, real number between 0 and 2
 mean_jump_disatnce: average of jump distances of single trajectory
@@ -44,9 +49,9 @@ print(f'\nanalysis_data2:\n', analysis_data2)
 
 #p1: kde(kernel density estimation) plot of mean jump distance grouped by state.
 plt.figure(f'p1')
-p1 = sns.kdeplot(analysis_data1, x=f'mean_jump_d', hue='state')
-plt.xlabel(f'mean_jump_distance for each state')
-p1.set_title(f'mean_jump_distance')
+p1 = sns.histplot(analysis_data1, x=f'mean_jump_d', stat='percent', hue='state', bins=number_of_bins, kde=True)
+plt.xlabel(f'mean_jump_distance')
+p1.set_title(f'mean_jump_distance for each state')
 
 
 #p2: joint distribution plot(kde) of alpha(x-axis) and K(y-axis) for each state
@@ -69,13 +74,13 @@ p4.set_title(f'state transition probability')
 
 #p5: displacement histogram
 plt.figure(f'p5')
-p5 = sns.histplot(data=analysis_data2, x='displacements', stat='percent', hue='state', bins=50, kde=True)
+p5 = sns.histplot(data=analysis_data2, x='displacements', stat='percent', hue='state', bins=number_of_bins, kde=True)
 p5.set_title(f'displacement histogram')
 
 
 #p6: displacement histogram
 plt.figure(f'p6')
-p6 = sns.histplot(data=analysis_data1, x='length', stat='percent', hue='state', bins=50, kde=True)
+p6 = sns.histplot(data=analysis_data1, x='length', stat='percent', hue='state', bins=number_of_bins, kde=True)
 p6.set_title(f'trajectory length histogram')
 
 
