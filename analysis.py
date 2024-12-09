@@ -1,4 +1,5 @@
 import seaborn as sns
+import numpy as np
 import matplotlib.pyplot as plt
 from modules.preprocessing import preprocessing, get_groundtruth_with_label
 
@@ -9,7 +10,7 @@ Option settings for data analysis.
 PIXELMICRONS = 0.16
 FRAMERATE = 0.01
 CUTOFF = 5
-FOLDER = 'condition1'
+FOLDER = 'condition2'
 number_of_bins = 50
 figure_resolution_in_dpi = 128
 figure_font_size = 20
@@ -25,17 +26,22 @@ preprocessing includes below steps.
 2. conver from pixel unit to micrometer unit with PIXELMICRONS and FRAMERATE
 3. generate 2 DataFrames, 1 ndarray representation of markovchain, 1 graph respresentation of markovchain
 """
-analysis_data1, analysis_data2, state_markov, state_graph = preprocessing(folder=FOLDER, pixelmicrons=PIXELMICRONS, framerate=FRAMERATE, cutoff=CUTOFF)
+analysis_data1, analysis_data2, state_markov, state_graph, msd, tamsd, states = preprocessing(folder=FOLDER, pixelmicrons=PIXELMICRONS, framerate=FRAMERATE, cutoff=CUTOFF)
 #analysis_data1, analysis_data2, state_markov, state_graph = get_groundtruth_with_label(folder=FOLDER, label_folder='dummy', pixelmicrons=PIXELMICRONS, framerate=FRAMERATE, cutoff=CUTOFF)
 
 
 """
 From here, we treat data to make plots or print results.
 Data is stored as
-1.analysis_data1(DataFrame: contains data of mean_jump_distance, K, alpha, state, length, traj_id)
-2.analysis_data2(DataFrame: contains data of displacments, state)
-3.state_markov(matrix: contains transition probability)
-4.state_graph(network: built from transitions between states(weight: nb of occurence of transitions))
+1. analysis_data1(DataFrame: contains data of mean_jump_distance, K, alpha, state, length, traj_id)
+2. analysis_data2(DataFrame: contains data of displacments, state)
+3. state_markov(matrix: contains transition probability)
+4. state_graph(network: built from transitions between states(weight: nb of occurence of transitions))
+5. msd(DataFrame: contains msd for each state.) 
+6. tamsd(DataFrame: contains ensemble-averaged tamsd for each state.) 
+-> ref: https://www.researchgate.net/publication/352833354_Characterising_stochastic_motion_in_heterogeneous_media_driven_by_coloured_non-Gaussian_noise
+-> ref: https://arxiv.org/pdf/1205.2100
+7. classified states beforehand with BI-ADD or other tools.
 
 Units: 
 K: generalized diffusion coefficient, um^2/s^alpha
@@ -47,6 +53,8 @@ displacements: displacements of all trajectories, um
 """
 print(f'\nanalysis_data1:\n', analysis_data1)
 print(f'\nanalysis_data2:\n', analysis_data2)
+print(f'\nMSD:\n', msd)
+print(f'\nEnsemble-averaged TAMSD:\n', tamsd)
 
 
 #p1: kde(kernel density estimation) plot of mean jump distance grouped by state.
@@ -97,6 +105,36 @@ p6 = sns.histplot(data=analysis_data1, x='length', stat='percent', hue='state', 
 p6.set_title(f'trajectory length histogram')
 plt.yticks(fontsize=figure_font_size)
 plt.xticks(fontsize=figure_font_size)
+plt.xticks(rotation=90)
+
+
+#p7: MSD
+plt.figure(f'p7', dpi=figure_resolution_in_dpi)
+p7 = sns.lineplot(data=msd, x='time', y='mean', hue='state')
+p7.set_title(f'MSD')
+plt.yticks(fontsize=figure_font_size)
+plt.xticks(fontsize=figure_font_size)
+for state_idx, state in enumerate(states):
+    # lower, upper bound related to the number of data (TODO: testing now)
+    msd_per_state = msd[msd['state'] == state].sort_values('time')
+    lower_bound = [mu - sigma for mu, sigma in zip(msd_per_state['mean'], msd_per_state['mean'] / 4 * (1 / msd_per_state['nb_data'] / (1 / msd_per_state['nb_data']).max()))]
+    upper_bound = [mu + sigma for mu, sigma in zip(msd_per_state['mean'], msd_per_state['mean'] / 4 * (1 / msd_per_state['nb_data'] / (1 / msd_per_state['nb_data']).max()))]
+    plt.fill_between(msd_per_state['time'], lower_bound, upper_bound, alpha=.3, color=f'C{state_idx}')
+plt.xticks(rotation=90)
+
+
+#p8: Ensemble-averaged TAMSD
+plt.figure(f'p8', dpi=figure_resolution_in_dpi)
+p8 = sns.lineplot(data=tamsd, x='time', y='mean', hue='state')
+p8.set_title(f'Ensemble-averaged TAMSD')
+plt.yticks(fontsize=figure_font_size)
+plt.xticks(fontsize=figure_font_size)
+for state_idx, state in enumerate(states):
+    # lower, upper bound related to the number of data (TODO: testing now)
+    tamsd_per_state = tamsd[tamsd['state'] == state].sort_values('time')
+    lower_bound = [mu - sigma for mu, sigma in zip(tamsd_per_state['mean'], tamsd_per_state['mean'] / 4 * (1 / tamsd_per_state['nb_data'] / (1 / tamsd_per_state['nb_data']).max()))]
+    upper_bound = [mu + sigma for mu, sigma in zip(tamsd_per_state['mean'], tamsd_per_state['mean'] / 4 * (1 / tamsd_per_state['nb_data'] / (1 / tamsd_per_state['nb_data']).max()))]
+    plt.fill_between(tamsd_per_state['time'], lower_bound, upper_bound, alpha=.3, color=f'C{state_idx}')
 plt.xticks(rotation=90)
 
 
