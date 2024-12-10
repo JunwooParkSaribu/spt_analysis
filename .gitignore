@@ -29,6 +29,7 @@ dummy
 *.sql
 *.sqlite
 *.pyc
+.ipynb*
 cachedir
 build
 error_log.txt
