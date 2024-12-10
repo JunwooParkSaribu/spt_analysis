@@ -197,6 +197,8 @@ def get_groundtruth_with_label(folder, label_folder, pixelmicrons, framerate, cu
     traj_indices = pd.unique(data['traj_idx'])
 
     # initializations
+    dim = 2 # will be changed in future.
+    max_frame = data.frame.max()
     total_states = sorted(np.unique(state_tmp))
     state_link_for_gt = {st:idx for idx, st in enumerate(total_states)}
     product_states = list(product(total_states, repeat=2))
@@ -214,10 +216,25 @@ def get_groundtruth_with_label(folder, label_folder, pixelmicrons, framerate, cu
     analysis_data2 = {}
     analysis_data2[f'displacements'] = []
     analysis_data2[f'state'] = []
+    msd_ragged_ens_trajs = {st:[] for st in total_states}
+    tamsd_ragged_ens_trajs = {st:[] for st in total_states}
+    msd = {}
+    msd[f'mean'] = []
+    msd[f'std'] = []
+    msd[f'nb_data'] = []
+    msd[f'state'] = []
+    msd[f'time'] = []
+    tamsd = {}
+    tamsd[f'mean'] = []
+    tamsd[f'std'] = []
+    tamsd[f'nb_data'] = []
+    tamsd[f'state'] = []
+    tamsd[f'time'] = []
 
 
     # get data from trajectories
-    for traj_idx in traj_indices:
+    print("** Computing of Ensemble-averaged TAMSD takes a few minutes **")
+    for traj_idx in tqdm(traj_indices, ncols=120, desc=f'Analysis', unit=f'trajectory'):
         # read ground-truth and change values to ground-truth
         corresponding_label_key = f'traj_labs_fov_{traj_idx.split("_")[-2]}@{traj_idx.split("_")[-1]}'
         ground_truth = label[corresponding_label_key]
@@ -260,6 +277,11 @@ def get_groundtruth_with_label(folder, label_folder, pixelmicrons, framerate, cu
 
             # trajectory length filter condition
             if len(sub_trajectory) >= cutoff:
+                # state of trajectory
+                state = sub_trajectory.state.iloc[0]
+                bi_add_alpha = sub_trajectory.alpha.iloc[0]
+                bi_add_K = sub_trajectory.K.iloc[0]
+
                 # convert from pixel-coordinate to micron.
                 sub_trajectory.x *= pixelmicrons
                 sub_trajectory.y *= pixelmicrons
@@ -269,20 +291,78 @@ def get_groundtruth_with_label(folder, label_folder, pixelmicrons, framerate, cu
                 # coordinate normalize
                 sub_trajectory.x -= sub_trajectory.x.iloc[0]
                 sub_trajectory.y -= sub_trajectory.y.iloc[0]
+                sub_trajectory.z -= sub_trajectory.z.iloc[0]
 
                 # calcultae jump distances
                 jump_distances = np.sqrt((sub_trajectory.x.iloc[1:].to_numpy() - sub_trajectory.x.iloc[:-1].to_numpy()) ** 2 + (sub_trajectory.y.iloc[1:].to_numpy() - sub_trajectory.y.iloc[:-1].to_numpy()) ** 2)
 
+
+                # MSD
+                msd_ragged_ens_trajs[state].append((np.array(sub_trajectory.x)**2 + np.array(sub_trajectory.y)**2) / dim / 2)
+
+
+                # TAMSD
+                tamsd_tmp = []
+                for lag in range(len(sub_trajectory)):
+                    time_averaged = []
+                    for pivot in range(len(sub_trajectory) - lag):
+                        time_averaged.append(((sub_trajectory.x.iloc[pivot + lag] - sub_trajectory.x.iloc[pivot]) ** 2 + (sub_trajectory.y.iloc[pivot + lag] - sub_trajectory.y.iloc[pivot]) ** 2) / dim / 2)
+                    tamsd_tmp.append(np.mean(time_averaged))
+                tamsd_ragged_ens_trajs[state].append(tamsd_tmp)
+
+
                 # add data for the visualization
                 analysis_data1[f'mean_jump_d'].append(jump_distances.mean())
-                analysis_data1[f'K'].append(sub_trajectory.K.iloc[0])
-                analysis_data1[f'alpha'].append(sub_trajectory.alpha.iloc[0])
-                analysis_data1[f'state'].append(sub_trajectory.state.iloc[0])
+                analysis_data1[f'K'].append(bi_add_K)
+                analysis_data1[f'alpha'].append(bi_add_alpha)
+                analysis_data1[f'state'].append(state)
                 analysis_data1[f'length'].append((sub_trajectory.frame.iloc[-1] - sub_trajectory.frame.iloc[0] + 1) * framerate)
                 analysis_data1[f'traj_id'].append(sub_trajectory.traj_idx.iloc[0])
 
                 analysis_data2[f'displacements'].extend(list(jump_distances))
                 analysis_data2[f'state'].extend([sub_trajectory.state.iloc[0]] * len(list(jump_distances)))
+
+    # calculate average of msd and tamsd for each state
+    for state_key in total_states:
+        msd_mean = []
+        msd_std = []
+        msd_nb_data = []
+        tamsd_mean = []
+        tamsd_std = []
+        tamsd_nb_data = []
+        for t in range(max_frame):
+            msd_nb_ = 0
+            tamsd_nb_ = 0
+            msd_row_data = []
+            tamsd_row_data = []
+            for row in range(len(msd_ragged_ens_trajs[state_key])):
+                if t < len(msd_ragged_ens_trajs[state_key][row]):
+                    msd_row_data.append(msd_ragged_ens_trajs[state_key][row][t])
+                    msd_nb_ += 1
+            for row in range(len(tamsd_ragged_ens_trajs[state_key])):
+                if t < len(tamsd_ragged_ens_trajs[state_key][row]):
+                    tamsd_row_data.append(tamsd_ragged_ens_trajs[state_key][row][t])
+                    tamsd_nb_ += 1
+            msd_mean.append(np.mean(msd_row_data))
+            msd_std.append(np.std(msd_row_data))
+            msd_nb_data.append(msd_nb_)
+            tamsd_mean.append(np.mean(tamsd_row_data))
+            tamsd_std.append(np.std(tamsd_row_data))
+            tamsd_nb_data.append(tamsd_nb_)
+
+        sts = [state_key] * max_frame
+        times = np.arange(0, max_frame) * framerate
+
+        msd[f'mean'].extend(msd_mean)
+        msd[f'std'].extend(msd_std)
+        msd[f'nb_data'].extend(msd_nb_data)
+        msd[f'state'].extend(sts)
+        msd[f'time'].extend(times)
+        tamsd[f'mean'].extend(tamsd_mean)
+        tamsd[f'std'].extend(tamsd_std)
+        tamsd[f'nb_data'].extend(tamsd_nb_data)
+        tamsd[f'state'].extend(sts)
+        tamsd[f'time'].extend(times)
 
     # normalize markov chain
     for edge in state_graph.edges:
@@ -295,5 +375,8 @@ def get_groundtruth_with_label(folder, label_folder, pixelmicrons, framerate, cu
 
     analysis_data1 = pd.DataFrame(analysis_data1).astype({'state': int, 'length': float, 'traj_id':str})
     analysis_data2 = pd.DataFrame(analysis_data2)
+    msd = pd.DataFrame(msd)
+    tamsd = pd.DataFrame(tamsd)
 
-    return analysis_data1, analysis_data2, state_markov, state_graph
+    print('** preprocessing finished **')
+    return analysis_data1, analysis_data2, state_markov, state_graph, msd, tamsd, total_states

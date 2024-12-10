@@ -26,8 +26,8 @@ preprocessing includes below steps.
 2. conver from pixel unit to micrometer unit with PIXELMICRONS and FRAMERATE
 3. generate 2 DataFrames, 1 ndarray representation of markovchain, 1 graph respresentation of markovchain
 """
-analysis_data1, analysis_data2, state_markov, state_graph, msd, tamsd, states = preprocessing(folder=FOLDER, pixelmicrons=PIXELMICRONS, framerate=FRAMERATE, cutoff=CUTOFF)
-#analysis_data1, analysis_data2, state_markov, state_graph = get_groundtruth_with_label(folder=FOLDER, label_folder='dummy', pixelmicrons=PIXELMICRONS, framerate=FRAMERATE, cutoff=CUTOFF)
+#analysis_data1, analysis_data2, state_markov, state_graph, msd, tamsd, states = preprocessing(folder=FOLDER, pixelmicrons=PIXELMICRONS, framerate=FRAMERATE, cutoff=CUTOFF)
+analysis_data1, analysis_data2, state_markov, state_graph, msd, tamsd, states = get_groundtruth_with_label(folder=FOLDER, label_folder='dummy', pixelmicrons=PIXELMICRONS, framerate=FRAMERATE, cutoff=CUTOFF)
 
 
 """
@@ -110,8 +110,8 @@ plt.xticks(rotation=90)
 
 #p7: MSD
 plt.figure(f'p7', dpi=figure_resolution_in_dpi)
-p7 = sns.lineplot(data=msd, x='time', y='mean', hue='state')
-p7.set_title(f'MSD')
+p7 = sns.lineplot(data=msd, x=np.log10(msd['time']), y=np.log10(msd['mean']), hue='state')
+p7.set_title(f'log-log MSD')
 plt.yticks(fontsize=figure_font_size)
 plt.xticks(fontsize=figure_font_size)
 for state_idx, state in enumerate(states):
@@ -126,7 +126,7 @@ plt.xticks(rotation=90)
 #p8: Ensemble-averaged TAMSD
 plt.figure(f'p8', dpi=figure_resolution_in_dpi)
 p8 = sns.lineplot(data=tamsd, x='time', y='mean', hue='state')
-p8.set_title(f'Ensemble-averaged TAMSD')
+p8.set_title(f'log-log Ensemble-averaged TAMSD')
 plt.yticks(fontsize=figure_font_size)
 plt.xticks(fontsize=figure_font_size)
 for state_idx, state in enumerate(states):
