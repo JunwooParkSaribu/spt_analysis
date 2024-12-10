@@ -19,15 +19,15 @@ figure_font_size = 20
 """
 preprocessing generates 4 data.
 @params: data folder path, pixel microns, frame rate, cutoff
-@output: DataFrame, DataFrame, ndarray, networkx grpah
+@output: DataFrame, DataFrame, ndarray, networkx grpah, DataFrame, DataFrame, list
 
 preprocessing includes below steps.
 1. exclude the trajectory where length is shorter than CUTOFF
-2. conver from pixel unit to micrometer unit with PIXELMICRONS and FRAMERATE
-3. generate 2 DataFrames, 1 ndarray representation of markovchain, 1 graph respresentation of markovchain
+2. convert from pixel unit to micrometer unit with PIXELMICRONS and FRAMERATE
+3. generate 4 DataFrames, 1 ndarray representation of markovchain, 1 graph respresentation of markovchain, 1 list containing states
 """
-#analysis_data1, analysis_data2, state_markov, state_graph, msd, tamsd, states = preprocessing(folder=FOLDER, pixelmicrons=PIXELMICRONS, framerate=FRAMERATE, cutoff=CUTOFF)
-analysis_data1, analysis_data2, state_markov, state_graph, msd, tamsd, states = get_groundtruth_with_label(folder=FOLDER, label_folder='dummy', pixelmicrons=PIXELMICRONS, framerate=FRAMERATE, cutoff=CUTOFF)
+analysis_data1, analysis_data2, state_markov, state_graph, msd, tamsd, states = preprocessing(folder=FOLDER, pixelmicrons=PIXELMICRONS, framerate=FRAMERATE, cutoff=CUTOFF)
+#analysis_data1, analysis_data2, state_markov, state_graph, msd, tamsd, states = get_groundtruth_with_label(folder=FOLDER, label_folder='dummy', pixelmicrons=PIXELMICRONS, framerate=FRAMERATE, cutoff=CUTOFF)
 
 
 """
@@ -110,30 +110,34 @@ plt.xticks(rotation=90)
 
 #p7: MSD
 plt.figure(f'p7', dpi=figure_resolution_in_dpi)
-p7 = sns.lineplot(data=msd, x=np.log10(msd['time']), y=np.log10(msd['mean']), hue='state')
-p7.set_title(f'log-log MSD')
+p7 = sns.lineplot(data=msd, x=msd['time'], y=msd['mean'], hue='state')
+p7.set_title(f'MSD')
 plt.yticks(fontsize=figure_font_size)
 plt.xticks(fontsize=figure_font_size)
 for state_idx, state in enumerate(states):
     # lower, upper bound related to the number of data (TODO: testing now)
     msd_per_state = msd[msd['state'] == state].sort_values('time')
-    lower_bound = [mu - sigma for mu, sigma in zip(msd_per_state['mean'], msd_per_state['mean'] / 4 * (1 / msd_per_state['nb_data'] / (1 / msd_per_state['nb_data']).max()))]
-    upper_bound = [mu + sigma for mu, sigma in zip(msd_per_state['mean'], msd_per_state['mean'] / 4 * (1 / msd_per_state['nb_data'] / (1 / msd_per_state['nb_data']).max()))]
+    mus = msd_per_state['mean']
+    sigmas = msd_per_state['std']
+    lower_bound = [mu - sigma for mu, sigma in zip(mus, sigmas)]
+    upper_bound = [mu + sigma for mu, sigma in zip(mus, sigmas)]
     plt.fill_between(msd_per_state['time'], lower_bound, upper_bound, alpha=.3, color=f'C{state_idx}')
 plt.xticks(rotation=90)
 
 
 #p8: Ensemble-averaged TAMSD
 plt.figure(f'p8', dpi=figure_resolution_in_dpi)
-p8 = sns.lineplot(data=tamsd, x='time', y='mean', hue='state')
-p8.set_title(f'log-log Ensemble-averaged TAMSD')
+p8 = sns.lineplot(data=tamsd, x=tamsd['time'], y=tamsd['mean'], hue='state')
+p8.set_title(f'Ensemble-averaged TAMSD')
 plt.yticks(fontsize=figure_font_size)
 plt.xticks(fontsize=figure_font_size)
 for state_idx, state in enumerate(states):
     # lower, upper bound related to the number of data (TODO: testing now)
     tamsd_per_state = tamsd[tamsd['state'] == state].sort_values('time')
-    lower_bound = [mu - sigma for mu, sigma in zip(tamsd_per_state['mean'], tamsd_per_state['mean'] / 4 * (1 / tamsd_per_state['nb_data'] / (1 / tamsd_per_state['nb_data']).max()))]
-    upper_bound = [mu + sigma for mu, sigma in zip(tamsd_per_state['mean'], tamsd_per_state['mean'] / 4 * (1 / tamsd_per_state['nb_data'] / (1 / tamsd_per_state['nb_data']).max()))]
+    mus = tamsd_per_state['mean']
+    sigmas = tamsd_per_state['std']
+    lower_bound = [mu - sigma for mu, sigma in zip(mus, sigmas)]
+    upper_bound = [mu + sigma for mu, sigma in zip(mus, sigmas)]
     plt.fill_between(tamsd_per_state['time'], lower_bound, upper_bound, alpha=.3, color=f'C{state_idx}')
 plt.xticks(rotation=90)
 

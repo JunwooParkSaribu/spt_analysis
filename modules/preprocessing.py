@@ -199,7 +199,7 @@ def get_groundtruth_with_label(folder, label_folder, pixelmicrons, framerate, cu
     # initializations
     dim = 2 # will be changed in future.
     max_frame = data.frame.max()
-    total_states = sorted(np.unique(state_tmp))
+    total_states = sorted(np.unique(state_tmp)-1) ####
     state_link_for_gt = {st:idx for idx, st in enumerate(total_states)}
     product_states = list(product(total_states, repeat=2))
     state_graph = nx.DiGraph()
@@ -244,7 +244,7 @@ def get_groundtruth_with_label(folder, label_folder, pixelmicrons, framerate, cu
         alphas = []
         states = []
         for K, alpha, state, cp in ground_truth:
-            state = int(state)
+            state = int(state)%2 ####
             cp = int(cp)
             padded_K = [K] * (cp - before_cp)
             padded_alpha = [alpha] * (cp - before_cp)
