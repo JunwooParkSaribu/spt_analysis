@@ -83,8 +83,8 @@ def preprocessing(folder, pixelmicrons, framerate, cutoff):
                 # convert from pixel-coordinate to micron.
                 sub_trajectory.x *= pixelmicrons
                 sub_trajectory.y *= pixelmicrons
-                sub_trajectory.z *= pixelmicrons ## need to check
-                sub_trajectory.K *= (pixelmicrons**2/framerate)
+                sub_trajectory.z *= pixelmicrons 
+                sub_trajectory.K *= (pixelmicrons**2/framerate**bi_add_alpha) #TODO: check again
 
                 # coordinate normalize
                 sub_trajectory.x -= sub_trajectory.x.iloc[0]
@@ -96,7 +96,7 @@ def preprocessing(folder, pixelmicrons, framerate, cutoff):
 
 
                 # MSD
-                msd_ragged_ens_trajs[state].append((np.array(sub_trajectory.x)**2 + np.array(sub_trajectory.y)**2) / dim / 2)
+                msd_ragged_ens_trajs[state].append((np.array(sub_trajectory.x)**2 + np.array(sub_trajectory.y)**2))
 
 
                 # TAMSD
@@ -104,7 +104,7 @@ def preprocessing(folder, pixelmicrons, framerate, cutoff):
                 for lag in range(len(sub_trajectory)):
                     time_averaged = []
                     for pivot in range(len(sub_trajectory) - lag):
-                        time_averaged.append(((sub_trajectory.x.iloc[pivot + lag] - sub_trajectory.x.iloc[pivot]) ** 2 + (sub_trajectory.y.iloc[pivot + lag] - sub_trajectory.y.iloc[pivot]) ** 2) / dim / 2)
+                        time_averaged.append(((sub_trajectory.x.iloc[pivot + lag] - sub_trajectory.x.iloc[pivot]) ** 2 + (sub_trajectory.y.iloc[pivot + lag] - sub_trajectory.y.iloc[pivot]) ** 2))
                     tamsd_tmp.append(np.mean(time_averaged))
                 tamsd_ragged_ens_trajs[state].append(tamsd_tmp)
 
@@ -286,7 +286,7 @@ def get_groundtruth_with_label(folder, label_folder, pixelmicrons, framerate, cu
                 sub_trajectory.x *= pixelmicrons
                 sub_trajectory.y *= pixelmicrons
                 sub_trajectory.z *= pixelmicrons ## need to check
-                sub_trajectory.K *= (pixelmicrons**2/framerate)
+                sub_trajectory.K *= (pixelmicrons**2/framerate**bi_add_alpha) #TODO: check again
 
                 # coordinate normalize
                 sub_trajectory.x -= sub_trajectory.x.iloc[0]

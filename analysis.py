@@ -17,7 +17,7 @@ figure_font_size = 20
 
 
 """
-preprocessing generates 4 data.
+preprocessing generates 7 data.
 @params: data folder path, pixel microns, frame rate, cutoff
 @output: DataFrame, DataFrame, ndarray, networkx grpah, DataFrame, DataFrame, list
 
@@ -115,7 +115,7 @@ p7.set_title(f'MSD')
 plt.yticks(fontsize=figure_font_size)
 plt.xticks(fontsize=figure_font_size)
 for state_idx, state in enumerate(states):
-    # lower, upper bound related to the number of data (TODO: testing now)
+    # lower, upper bound related to the number of data (TODO: testing)
     msd_per_state = msd[msd['state'] == state].sort_values('time')
     mus = msd_per_state['mean']
     sigmas = msd_per_state['std']
@@ -132,7 +132,7 @@ p8.set_title(f'Ensemble-averaged TAMSD')
 plt.yticks(fontsize=figure_font_size)
 plt.xticks(fontsize=figure_font_size)
 for state_idx, state in enumerate(states):
-    # lower, upper bound related to the number of data (TODO: testing now)
+    # lower, upper bound related to the number of data (TODO: testing)
     tamsd_per_state = tamsd[tamsd['state'] == state].sort_values('time')
     mus = tamsd_per_state['mean']
     sigmas = tamsd_per_state['std']

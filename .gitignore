@@ -29,7 +29,7 @@ dummy
 *.sql
 *.sqlite
 *.pyc
-.ipynb*
+.ipynb_checkpoints
 cachedir
 build
 error_log.txt
