@@ -6,7 +6,7 @@ from modules.fileIO import DataLoad
 from tqdm import tqdm
 
 
-def preprocessing(folder, pixelmicrons, framerate, cutoff):
+def preprocessing(folder, pixelmicrons, framerate, cutoff, tamsd_calcul=True):
     # load FreeTrace+Bi-ADD data without NaN (NaN where trajectory length is shorter than 5, default in BI-ADD)
     data = DataLoad.read_multiple_h5s(folder).dropna()
     # using dictionary to convert specific columns
@@ -51,7 +51,8 @@ def preprocessing(folder, pixelmicrons, framerate, cutoff):
 
 
     # get data from trajectories
-    print("** Computing of Ensemble-averaged TAMSD takes a few minutes **")
+    if tamsd_calcul:
+        print("** Computing of Ensemble-averaged TAMSD takes a few minutes **")
     for traj_idx in tqdm(traj_indices, ncols=120, desc=f'Analysis', unit=f'trajectory'):
         single_traj = data.loc[data['traj_idx'] == traj_idx].copy()
         
@@ -98,14 +99,16 @@ def preprocessing(folder, pixelmicrons, framerate, cutoff):
                 # MSD
                 msd_ragged_ens_trajs[state].append((np.array(sub_trajectory.x)**2 + np.array(sub_trajectory.y)**2))
 
-
                 # TAMSD
-                tamsd_tmp = []
-                for lag in range(len(sub_trajectory)):
-                    time_averaged = []
-                    for pivot in range(len(sub_trajectory) - lag):
-                        time_averaged.append(((sub_trajectory.x.iloc[pivot + lag] - sub_trajectory.x.iloc[pivot]) ** 2 + (sub_trajectory.y.iloc[pivot + lag] - sub_trajectory.y.iloc[pivot]) ** 2))
-                    tamsd_tmp.append(np.mean(time_averaged))
+                if tamsd_calcul:
+                    tamsd_tmp = []
+                    for lag in range(len(sub_trajectory)):
+                        time_averaged = []
+                        for pivot in range(len(sub_trajectory) - lag):
+                            time_averaged.append(((sub_trajectory.x.iloc[pivot + lag] - sub_trajectory.x.iloc[pivot]) ** 2 + (sub_trajectory.y.iloc[pivot + lag] - sub_trajectory.y.iloc[pivot]) ** 2) / dim / 2)
+                        tamsd_tmp.append(np.mean(time_averaged))
+                else:
+                    tamsd_tmp = [0] * len(sub_trajectory)
                 tamsd_ragged_ens_trajs[state].append(tamsd_tmp)
 
 
@@ -182,7 +185,7 @@ def preprocessing(folder, pixelmicrons, framerate, cutoff):
     return analysis_data1, analysis_data2, state_markov, state_graph, msd, tamsd, total_states
 
 
-def get_groundtruth_with_label(folder, label_folder, pixelmicrons, framerate, cutoff):
+def get_groundtruth_with_label(folder, label_folder, pixelmicrons, framerate, cutoff, tamsd_calcul=True):
     # load FreeTrace+Bi-ADD data with NaN since we have ground-truth.
     data = DataLoad.read_multiple_h5s(folder)
     label = DataLoad.read_mulitple_andi_labels(label_folder)
@@ -232,8 +235,8 @@ def get_groundtruth_with_label(folder, label_folder, pixelmicrons, framerate, cu
     tamsd[f'time'] = []
 
 
-    # get data from trajectories
-    print("** Computing of Ensemble-averaged TAMSD takes a few minutes **")
+    if tamsd_calcul:
+        print("** Computing of Ensemble-averaged TAMSD takes a few minutes **")
     for traj_idx in tqdm(traj_indices, ncols=120, desc=f'Analysis', unit=f'trajectory'):
         # read ground-truth and change values to ground-truth
         corresponding_label_key = f'traj_labs_fov_{traj_idx.split("_")[-2]}@{traj_idx.split("_")[-1]}'
@@ -300,14 +303,16 @@ def get_groundtruth_with_label(folder, label_folder, pixelmicrons, framerate, cu
                 # MSD
                 msd_ragged_ens_trajs[state].append((np.array(sub_trajectory.x)**2 + np.array(sub_trajectory.y)**2) / dim / 2)
 
-
                 # TAMSD
-                tamsd_tmp = []
-                for lag in range(len(sub_trajectory)):
-                    time_averaged = []
-                    for pivot in range(len(sub_trajectory) - lag):
-                        time_averaged.append(((sub_trajectory.x.iloc[pivot + lag] - sub_trajectory.x.iloc[pivot]) ** 2 + (sub_trajectory.y.iloc[pivot + lag] - sub_trajectory.y.iloc[pivot]) ** 2) / dim / 2)
-                    tamsd_tmp.append(np.mean(time_averaged))
+                if tamsd_calcul:
+                    tamsd_tmp = []
+                    for lag in range(len(sub_trajectory)):
+                        time_averaged = []
+                        for pivot in range(len(sub_trajectory) - lag):
+                            time_averaged.append(((sub_trajectory.x.iloc[pivot + lag] - sub_trajectory.x.iloc[pivot]) ** 2 + (sub_trajectory.y.iloc[pivot + lag] - sub_trajectory.y.iloc[pivot]) ** 2) / dim / 2)
+                        tamsd_tmp.append(np.mean(time_averaged))
+                else:
+                    tamsd_tmp = [0] * len(sub_trajectory)
                 tamsd_ragged_ens_trajs[state].append(tamsd_tmp)
 
 
