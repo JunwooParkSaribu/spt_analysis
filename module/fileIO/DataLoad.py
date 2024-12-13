@@ -65,7 +65,28 @@ def read_multiple_h5s(path):
         for ff in files_not_same_conditions:
             print(ff)
         print('*****************************************************************************************')
-        
+    return grouped_df
+
+
+def read_multiple_csv(path):
+    dfs = []
+    f_list = glob.glob(f'{path}/*.csv')
+    for f_idx, file in enumerate(f_list):
+        df = read_csv(file)
+        if f_idx != 0:
+            pure_f_name = file.split('/')[-1].split(f'.csv')[0]
+            df['filename'] = [pure_f_name] * len(df['traj_idx'])
+            traj_indices = df['traj_idx']
+            traj_indices = [f'{pure_f_name}_{idx}' for idx in traj_indices]
+            df['traj_idx'] = traj_indices
+        else:
+            pure_f_name = file.split('/')[-1].split(f'.csv')[0]
+            df['filename'] = [pure_f_name] * len(df['traj_idx'])
+            traj_indices = df['traj_idx']
+            traj_indices = [f'{pure_f_name}_{idx}' for idx in traj_indices]
+            df['traj_idx'] = traj_indices
+        dfs.append(df)
+    grouped_df = pd.concat(dfs) 
     return grouped_df
 
 

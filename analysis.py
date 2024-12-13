@@ -1,7 +1,7 @@
 import seaborn as sns
 import numpy as np
 import matplotlib.pyplot as plt
-from modules.preprocessing import preprocessing, get_groundtruth_with_label
+from module.preprocessing import preprocessing, get_groundtruth_with_label
 
 
 """
@@ -10,7 +10,7 @@ Option settings for data analysis.
 PIXELMICRONS = 0.16
 FRAMERATE = 0.01
 CUTOFF = 5
-FOLDER = 'condition2'
+FOLDER = 'condition1'
 number_of_bins = 50
 figure_resolution_in_dpi = 128
 figure_font_size = 20

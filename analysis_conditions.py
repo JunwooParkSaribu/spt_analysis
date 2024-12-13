@@ -1,7 +1,7 @@
 import seaborn as sns
 import pandas as pd
 import matplotlib.pyplot as plt
-from modules.preprocessing import preprocessing
+from module.preprocessing import preprocessing
 
 
 """
