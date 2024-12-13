@@ -9,7 +9,25 @@ def read_h5(file):
         df_read = hdf_store.get('data')
     convert_dict = {'state': int, 'frame': int, 'traj_idx': int}
     df_read = df_read.astype(convert_dict)
+    print(df_read)
     return df_read, metadata
+
+
+def read_csv(file):
+    csv_data = pd.read_csv(file)
+    col_names = ['traj_idx', 'frame', 'x', 'y', 'z', 'state', 'K', 'alpha']
+    z = np.zeros(len(csv_data.iloc[:, 1]))
+    if 'Bound' in file:
+        state = np.zeros(len(csv_data.iloc[:, 1]))
+    else:
+        state = np.zeros(len(csv_data.iloc[:, 1])) + 1
+    K = np.zeros(len(csv_data.iloc[:, 1]))
+    alpha = np.zeros(len(csv_data.iloc[:, 1]))
+    csv_data = csv_data.assign(z = z)
+    csv_data = csv_data.assign(state = state)
+    csv_data = csv_data.assign(K = K)
+    csv_data = csv_data.assign(alpha = alpha)
+    return csv_data
 
 
 def read_multiple_h5s(path):
