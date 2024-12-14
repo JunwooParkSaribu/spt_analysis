@@ -1,5 +1,4 @@
 import seaborn as sns
-import numpy as np
 import matplotlib.pyplot as plt
 from module.visuailzation import trajectory_visualization
 from module.preprocessing import preprocessing, get_groundtruth_with_label
