@@ -19,8 +19,10 @@ def read_csv(file):
     z = np.zeros(len(csv_data.iloc[:, 1]))
     if 'Bound' in file:
         state = np.zeros(len(csv_data.iloc[:, 1]))
-    else:
+    elif 'Hybrid' in file:
         state = np.zeros(len(csv_data.iloc[:, 1])) + 1
+    else:
+        state = np.zeros(len(csv_data.iloc[:, 1])) + 2
     K = np.zeros(len(csv_data.iloc[:, 1]))
     alpha = np.zeros(len(csv_data.iloc[:, 1]))
     csv_data = csv_data.assign(z = z)

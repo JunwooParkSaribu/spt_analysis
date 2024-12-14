@@ -26,7 +26,7 @@ preprocessing includes below steps.
 2. convert from pixel unit to micrometer unit with PIXELMICRONS and FRAMERATE
 3. generate 4 DataFrames, 1 ndarray representation of markovchain, 1 graph respresentation of markovchain, 1 list containing states
 """
-analysis_data1, analysis_data2, state_markov, state_graph, msd, tamsd, states = preprocessing(folder=FOLDER, pixelmicrons=PIXELMICRONS, framerate=FRAMERATE, cutoff=CUTOFF)
+analysis_data1, analysis_data2, state_markov, state_graph, msd, tamsd, states = preprocessing(folder=FOLDER, pixelmicrons=PIXELMICRONS, framerate=FRAMERATE, cutoff=CUTOFF, csv=True)
 #analysis_data1, analysis_data2, state_markov, state_graph, msd, tamsd, states = get_groundtruth_with_label(folder=FOLDER, label_folder='dummy', pixelmicrons=PIXELMICRONS, framerate=FRAMERATE, cutoff=CUTOFF)
 
 
@@ -64,6 +64,7 @@ plt.xlabel(f'mean_jump_distance')
 p1.set_title(f'mean_jump_distance for each state')
 plt.yticks(fontsize=figure_font_size)
 plt.xticks(fontsize=figure_font_size)
+plt.xticks(rotation=90)
 
 
 #p2: joint distribution plot(kde) of alpha(x-axis) and K(y-axis) for each state
@@ -97,6 +98,7 @@ p5 = sns.histplot(data=analysis_data2, x='displacements', stat='percent', hue='s
 p5.set_title(f'displacement histogram')
 plt.yticks(fontsize=figure_font_size)
 plt.xticks(fontsize=figure_font_size)
+plt.xticks(rotation=90)
 
 
 #p6: trajectory length(frame) histogram
