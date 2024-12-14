@@ -6,12 +6,9 @@ from module.fileIO import DataLoad
 from tqdm import tqdm
 
 
-def preprocessing(folder, pixelmicrons, framerate, cutoff, tamsd_calcul=True, csv=False):
+def preprocessing(data, pixelmicrons, framerate, cutoff, tamsd_calcul=True):
     # load FreeTrace+Bi-ADD data without NaN (NaN where trajectory length is shorter than 5, default in BI-ADD)
-    if csv:
-        data = DataLoad.read_multiple_csv(folder)
-    else:
-        data = DataLoad.read_multiple_h5s(folder).dropna()
+    data = data.dropna()
     # using dictionary to convert specific columns
     convert_dict = {'state': int}
     data = data.astype(convert_dict)

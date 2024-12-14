@@ -1,7 +1,9 @@
 import seaborn as sns
 import numpy as np
 import matplotlib.pyplot as plt
+from module.visuailzation import trajectory_visualization
 from module.preprocessing import preprocessing, get_groundtruth_with_label
+from module.fileIO.DataLoad import read_multiple_csv, read_multiple_h5s
 
 
 """
@@ -26,8 +28,9 @@ preprocessing includes below steps.
 2. convert from pixel unit to micrometer unit with PIXELMICRONS and FRAMERATE
 3. generate 4 DataFrames, 1 ndarray representation of markovchain, 1 graph respresentation of markovchain, 1 list containing states
 """
-analysis_data1, analysis_data2, state_markov, state_graph, msd, tamsd, states = preprocessing(folder=FOLDER, pixelmicrons=PIXELMICRONS, framerate=FRAMERATE, cutoff=CUTOFF, csv=True)
-#analysis_data1, analysis_data2, state_markov, state_graph, msd, tamsd, states = get_groundtruth_with_label(folder=FOLDER, label_folder='dummy', pixelmicrons=PIXELMICRONS, framerate=FRAMERATE, cutoff=CUTOFF)
+original_data = read_multiple_h5s(path=FOLDER)
+analysis_data1, analysis_data2, state_markov, state_graph, msd, tamsd, states = preprocessing(data=original_data, pixelmicrons=PIXELMICRONS, framerate=FRAMERATE, cutoff=CUTOFF)
+#analysis_data1, analysis_data2, state_markov, state_graph, msd, tamsd, states = get_groundtruth_with_label(data=original_data, label_folder='dummy', pixelmicrons=PIXELMICRONS, framerate=FRAMERATE, cutoff=CUTOFF)
 
 
 """

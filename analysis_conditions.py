@@ -2,6 +2,7 @@ import seaborn as sns
 import pandas as pd
 import matplotlib.pyplot as plt
 from module.preprocessing import preprocessing
+from module.fileIO.DataLoad import read_multiple_csv, read_multiple_h5s
 
 
 """
@@ -24,7 +25,8 @@ analysis_data2 = pd.DataFrame({})
 state_markovs = []
 state_graphs = []
 for condition in CONDITIONS:
-    data1, data2, state_markov, state_graph, msd, tamsd, states = preprocessing(folder=condition, pixelmicrons=PIXELMICRONS, framerate=FRAMERATE, cutoff=CUTOFF, tamsd_calcul=False)
+    data = read_multiple_h5s(path=condition)
+    data1, data2, state_markov, state_graph, msd, tamsd, states = preprocessing(data=data, pixelmicrons=PIXELMICRONS, framerate=FRAMERATE, cutoff=CUTOFF, tamsd_calcul=False)
     data1['condition'] = [condition] * len(data1)
     data2['condition'] = [condition] * len(data2)
     analysis_data1 = pd.concat([analysis_data1, data1], ignore_index=True)
