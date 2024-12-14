@@ -55,6 +55,7 @@ plt.xlabel(f'mean_jump_distance for each state')
 p1.set_title(f'mean_jump_distance')
 plt.yticks(fontsize=figure_font_size)
 plt.xticks(fontsize=figure_font_size)
+plt.xticks(rotation=90)
 
 
 #p2: histogram of states
@@ -63,6 +64,7 @@ p2 = sns.histplot(data=analysis_data1, x="state", stat='percent', multiple='stac
 p2.set_title(f'population of states')
 plt.yticks(fontsize=figure_font_size)
 plt.xticks(fontsize=figure_font_size)
+plt.xticks(rotation=90)
 
 
 #p3: displacement histogram
@@ -71,6 +73,7 @@ p3 = sns.histplot(data=analysis_data2, x='displacements', stat='percent', hue='c
 p3.set_title(f'displacement histogram')
 plt.yticks(fontsize=figure_font_size)
 plt.xticks(fontsize=figure_font_size)
+plt.xticks(rotation=90)
 
 
 plt.show()
