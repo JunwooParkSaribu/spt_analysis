@@ -108,7 +108,7 @@ plt.xticks(rotation=90)
 plt.tight_layout()
 
 
-#p6: trajectory length(frame) histogram
+#p6: trajectory length(sec) histogram
 plt.figure(f'p6', dpi=figure_resolution_in_dpi)
 p6 = sns.histplot(data=analysis_data1, x='length', stat='percent', hue='state', bins=number_of_bins, kde=True)
 p6.set_title(f'trajectory length histogram')
