@@ -7,6 +7,7 @@ def read_h5(file):
     with pd.HDFStore(file) as hdf_store:
         metadata = hdf_store.get_storer('data').attrs.metadata
         df_read = hdf_store.get('data')
+    df_read = df_read.dropna()
     convert_dict = {'state': int, 'frame': int, 'traj_idx': int}
     df_read = df_read.astype(convert_dict)
     return df_read, metadata
