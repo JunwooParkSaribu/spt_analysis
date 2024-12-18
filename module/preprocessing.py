@@ -97,7 +97,7 @@ def preprocessing(data, pixelmicrons, framerate, cutoff, tamsd_calcul=True):
 
 
                 # MSD
-                msd_ragged_ens_trajs[state].append(((sub_trajectory.x.to_numpy())**2 + (sub_trajectory.y.to_numpy())**2))
+                msd_ragged_ens_trajs[state].append(((sub_trajectory.x.to_numpy())**2 + (sub_trajectory.y.to_numpy())**2) / dim / 2)
 
                 # TAMSD
                 if tamsd_calcul:
@@ -105,7 +105,7 @@ def preprocessing(data, pixelmicrons, framerate, cutoff, tamsd_calcul=True):
                     for lag in range(len(sub_trajectory)):
                         time_averaged = []
                         for pivot in range(len(sub_trajectory) - lag):
-                            time_averaged.append(((sub_trajectory.x.iloc[pivot + lag] - sub_trajectory.x.iloc[pivot]) ** 2 + (sub_trajectory.y.iloc[pivot + lag] - sub_trajectory.y.iloc[pivot]) ** 2))
+                            time_averaged.append(((sub_trajectory.x.iloc[pivot + lag] - sub_trajectory.x.iloc[pivot]) ** 2 + (sub_trajectory.y.iloc[pivot + lag] - sub_trajectory.y.iloc[pivot]) ** 2) / dim / 2)
                         tamsd_tmp.append(np.mean(time_averaged))
                 else:
                     tamsd_tmp = [0] * len(sub_trajectory)
