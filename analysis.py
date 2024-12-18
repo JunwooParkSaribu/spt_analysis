@@ -28,7 +28,7 @@ preprocessing includes below steps.
 3. generate 4 DataFrames, 1 ndarray representation of markovchain, 1 graph respresentation of markovchain, 1 list containing states
 """
 original_data = read_multiple_h5s(path=FOLDER)
-analysis_data1, analysis_data2, state_markov, state_graph, msd, tamsd, states = preprocessing(data=original_data, pixelmicrons=PIXELMICRONS, framerate=FRAMERATE, cutoff=CUTOFF)
+analysis_data1, analysis_data2, state_markov, state_graph, msd, tamsd, states = preprocessing(data=original_data, pixelmicrons=PIXELMICRONS, framerate=FRAMERATE, cutoff=CUTOFF, tamsd_calcul=False)
 #analysis_data1, analysis_data2, state_markov, state_graph, msd, tamsd, states = get_groundtruth_with_label(data=original_data, label_folder='dummy', pixelmicrons=PIXELMICRONS, framerate=FRAMERATE, cutoff=CUTOFF)
 
 
@@ -63,7 +63,7 @@ print(f'\nEnsemble-averaged TAMSD:\n', tamsd)
 plt.figure(f'p1', dpi=figure_resolution_in_dpi)
 p1 = sns.histplot(analysis_data1, x=f'mean_jump_d', stat='percent', hue='state', bins=number_of_bins, kde=True)
 p1.set_xlabel(r'mean jump-distance($\mu m$)')
-p1.set_title(f'mean_jump_distance for each state')
+p1.set_title(f'mean jump-distance for each state')
 plt.yticks(fontsize=figure_font_size)
 plt.xticks(fontsize=figure_font_size)
 plt.xticks(rotation=90)
@@ -144,7 +144,7 @@ plt.tight_layout()
 plt.figure(f'p8', dpi=figure_resolution_in_dpi)
 p8 = sns.lineplot(data=tamsd, x=tamsd['time'], y=tamsd['mean'], hue='state')
 p8.set_title(f'Ensemble-averaged TAMSD')
-p8.set_xlabel(r'lag\ time($s$)')
+p8.set_xlabel(r'lag time($s$)')
 p8.set_ylabel(r'TAMSD($\mu m^2$)')
 plt.yticks(fontsize=figure_font_size)
 plt.xticks(fontsize=figure_font_size)

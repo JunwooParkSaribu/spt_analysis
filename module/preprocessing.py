@@ -97,7 +97,7 @@ def preprocessing(data, pixelmicrons, framerate, cutoff, tamsd_calcul=True):
 
 
                 # MSD
-                msd_ragged_ens_trajs[state].append((np.array(sub_trajectory.x)**2 + np.array(sub_trajectory.y)**2))
+                msd_ragged_ens_trajs[state].append(((sub_trajectory.x.to_numpy())**2 + (sub_trajectory.y.to_numpy())**2) / dim / 2)
 
                 # TAMSD
                 if tamsd_calcul:
@@ -301,7 +301,7 @@ def get_groundtruth_with_label(folder, label_folder, pixelmicrons, framerate, cu
 
 
                 # MSD
-                msd_ragged_ens_trajs[state].append((np.array(sub_trajectory.x)**2 + np.array(sub_trajectory.y)**2) / dim / 2)
+                msd_ragged_ens_trajs[state].append(((sub_trajectory.x.to_numpy())**2 + (sub_trajectory.y.to_numpy())**2) / dim / 2)
 
                 # TAMSD
                 if tamsd_calcul:
