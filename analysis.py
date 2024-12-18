@@ -13,7 +13,7 @@ FRAMERATE = 0.01
 CUTOFF = 5
 FOLDER = 'condition2'
 number_of_bins = 50
-figure_resolution_in_dpi = 256
+figure_resolution_in_dpi = 200
 figure_font_size = 20
 
 
@@ -35,7 +35,7 @@ analysis_data1, analysis_data2, state_markov, state_graph, msd, tamsd, states = 
 """
 From here, we treat data to make plots or print results.
 Data is stored as
-1. analysis_data1: (DataFrame: contains data of mean_jump_distance, K, alpha, state, length, traj_id)
+1. analysis_data1: (DataFrame: contains data of mean_jump_distance, K, alpha, state, duration, traj_id)
 2. analysis_data2: (DataFrame: contains data of displacments, state)
 3. state_markov: (matrix: contains transition probability)
 4. state_graph: (network: built from transitions between states(weight: nb of occurence of transitions))
@@ -50,7 +50,7 @@ K: generalized diffusion coefficient, um^2/s^alpha.
 alpha: anomalous diffusion exponent, real number between 0 and 2.
 mean_jump_disatnce: set of averages of jump distances in um.
 state: states defined in BI-ADD.
-length: length of trajectory in seconds.
+duration: duration of trajectory in seconds.
 displacement: displacement(time lag=1) of all trajectories in um.
 """
 print(f'\nanalysis_data1:\n', analysis_data1)
@@ -71,9 +71,10 @@ plt.tight_layout()
 
 
 #p2: joint distribution plot of alpha(x-axis) and K(y-axis) for each state
-p2 = sns.jointplot(data=analysis_data1, x=f"alpha", y=f"K", kind='scatter', hue='state', height=15)
-p2.set_axis_labels(xlabel=r'$\alpha$', ylabel=r'$K(\mu m^2/s)$', fontsize=figure_font_size)
-p2.figure.suptitle(f'alpha, K distribution for each state')
+p2 = sns.jointplot(data=analysis_data1, x=f'alpha', y=f'K', kind='scatter', hue='state', height=12, xlim=(-0.2, 2.2), 
+                   joint_kws={'data':analysis_data1, 'size':'duration', 'sizes':(40, 400), 'alpha':0.5})
+p2.set_axis_labels(xlabel=r'$\alpha$', ylabel=r'$log_{10}K(\mu m^2/s^\alpha)$', fontsize=figure_font_size)
+p2.figure.suptitle(r'$\alpha$, K distribution for each state')
 p2.ax_joint.set_yticklabels(p2.ax_joint.get_yticks(), fontsize = figure_font_size)
 p2.ax_joint.set_xticklabels(p2.ax_joint.get_xticks(), fontsize = figure_font_size)
 plt.tight_layout()
@@ -110,7 +111,7 @@ plt.tight_layout()
 
 #p6: trajectory length(sec) histogram
 plt.figure(f'p6', dpi=figure_resolution_in_dpi)
-p6 = sns.histplot(data=analysis_data1, x='length', stat='percent', hue='state', bins=number_of_bins, kde=True)
+p6 = sns.histplot(data=analysis_data1, x='duration', stat='percent', hue='state', bins=number_of_bins, kde=True)
 p6.set_title(f'trajectory length histogram')
 p6.set_xlabel(r'$duration(s)$')
 plt.yticks(fontsize=figure_font_size)

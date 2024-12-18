@@ -13,7 +13,7 @@ FRAMERATE = 0.01
 CUTOFF = 5
 CONDITIONS = ['condition1', 'condition2']
 number_of_bins = 50
-figure_resolution_in_dpi = 256
+figure_resolution_in_dpi = 200
 figure_font_size = 20
 
 

@@ -29,7 +29,7 @@ def preprocessing(data, pixelmicrons, framerate, cutoff, tamsd_calcul=True):
     analysis_data1[f'K'] = []
     analysis_data1[f'alpha'] = []
     analysis_data1[f'state'] = []
-    analysis_data1[f'length'] = []
+    analysis_data1[f'duration'] = []
     analysis_data1[f'traj_id'] = []
     analysis_data2 = {}
     analysis_data2[f'displacements'] = []
@@ -85,7 +85,7 @@ def preprocessing(data, pixelmicrons, framerate, cutoff, tamsd_calcul=True):
                 sub_trajectory.x *= pixelmicrons
                 sub_trajectory.y *= pixelmicrons
                 sub_trajectory.z *= pixelmicrons 
-                sub_trajectory.K *= (pixelmicrons**2/framerate**bi_add_alpha) #TODO: check again
+                bi_add_K *= (pixelmicrons**2/framerate**bi_add_alpha) #TODO: check again
 
                 # coordinate normalize
                 sub_trajectory.x -= sub_trajectory.x.iloc[0]
@@ -114,10 +114,10 @@ def preprocessing(data, pixelmicrons, framerate, cutoff, tamsd_calcul=True):
 
                 # add data1 for the visualization
                 analysis_data1[f'mean_jump_d'].append(jump_distances.mean())
-                analysis_data1[f'K'].append(bi_add_K)
+                analysis_data1[f'K'].append(np.log10(bi_add_K))
                 analysis_data1[f'alpha'].append(bi_add_alpha)
                 analysis_data1[f'state'].append(state)
-                analysis_data1[f'length'].append((sub_trajectory.frame.iloc[-1] - sub_trajectory.frame.iloc[0] + 1) * framerate)
+                analysis_data1[f'duration'].append((sub_trajectory.frame.iloc[-1] - sub_trajectory.frame.iloc[0] + 1) * framerate)
                 analysis_data1[f'traj_id'].append(sub_trajectory.traj_idx.iloc[0])
 
                 # add data2 for the visualization
@@ -176,7 +176,7 @@ def preprocessing(data, pixelmicrons, framerate, cutoff, tamsd_calcul=True):
         state_markov[idx] /= np.sum(state_markov[idx])
 
 
-    analysis_data1 = pd.DataFrame(analysis_data1).astype({'state': int, 'length': float, 'traj_id':str})
+    analysis_data1 = pd.DataFrame(analysis_data1).astype({'state': int, 'duration': float, 'traj_id':str})
     analysis_data2 = pd.DataFrame(analysis_data2)
     msd = pd.DataFrame(msd)
     tamsd = pd.DataFrame(tamsd)

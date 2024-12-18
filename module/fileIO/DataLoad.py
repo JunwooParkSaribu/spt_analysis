@@ -108,7 +108,7 @@ def andi2_label_parser(path):
                 alphas.append(float(alpha))
                 states.append(int(eval(state)))
                 cps.append(int(eval(cp)))
-            andi_dict[f'{path.split('.txt')[0].split('/')[-1]}@{traj_idx}'] = np.array([Ks, alphas, states, cps]).T
+            andi_dict[f'{path.split(".txt")[0].split("/")[-1]}@{traj_idx}'] = np.array([Ks, alphas, states, cps]).T
     return andi_dict
 
 
