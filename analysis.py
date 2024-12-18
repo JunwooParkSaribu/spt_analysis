@@ -28,7 +28,7 @@ preprocessing includes below steps.
 3. generate 4 DataFrames, 1 ndarray representation of markovchain, 1 graph respresentation of markovchain, 1 list containing states
 """
 original_data = read_multiple_h5s(path=FOLDER)
-analysis_data1, analysis_data2, state_markov, state_graph, msd, tamsd, states = preprocessing(data=original_data, pixelmicrons=PIXELMICRONS, framerate=FRAMERATE, cutoff=CUTOFF)
+analysis_data1, analysis_data2, state_markov, state_graph, msd, tamsd, states = preprocessing(data=original_data, pixelmicrons=PIXELMICRONS, framerate=FRAMERATE, cutoff=CUTOFF, tamsd_calcul=False)
 #analysis_data1, analysis_data2, state_markov, state_graph, msd, tamsd, states = get_groundtruth_with_label(data=original_data, label_folder='dummy', pixelmicrons=PIXELMICRONS, framerate=FRAMERATE, cutoff=CUTOFF)
 
 
@@ -125,7 +125,7 @@ plt.figure(f'p7', dpi=figure_resolution_in_dpi)
 p7 = sns.lineplot(data=msd, x=msd['time'], y=msd['mean'], hue='state')
 p7.set_title(f'MSD')
 p7.set_xlabel(r'time($s$)')
-p7.set_ylabel(r'MSD / dimension / 2($\mu m^2$)')
+p7.set_ylabel(r'$\frac{\text{MSD}}{\text{2} \cdot \text{dimension}}$ ($\mu m^2$)')
 plt.yticks(fontsize=figure_font_size)
 plt.xticks(fontsize=figure_font_size)
 for state_idx, state in enumerate(states):
@@ -145,7 +145,7 @@ plt.figure(f'p8', dpi=figure_resolution_in_dpi)
 p8 = sns.lineplot(data=tamsd, x=tamsd['time'], y=tamsd['mean'], hue='state')
 p8.set_title(f'Ensemble-averaged TAMSD')
 p8.set_xlabel(r'lag time($s$)')
-p8.set_ylabel(r'TAMSD / dimension / 2($\mu m^2$)')
+p8.set_ylabel(r'$\frac{\text{TAMSD}}{\text{2} \cdot \text{dimension}}$ ($\mu m^2$)')
 plt.yticks(fontsize=figure_font_size)
 plt.xticks(fontsize=figure_font_size)
 for state_idx, state in enumerate(states):
