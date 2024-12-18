@@ -35,7 +35,7 @@ analysis_data1, analysis_data2, state_markov, state_graph, msd, tamsd, states = 
 """
 From here, we treat data to make plots or print results.
 Data is stored as
-1. analysis_data1: (DataFrame: contains data of mean_jump_distance, K, alpha, state, duration, traj_id)
+1. analysis_data1: (DataFrame: contains data of mean_jump_distance, log10_K, alpha, state, duration, traj_id)
 2. analysis_data2: (DataFrame: contains data of displacments, state)
 3. state_markov: (matrix: contains transition probability)
 4. state_graph: (network: built from transitions between states(weight: nb of occurence of transitions))
@@ -46,7 +46,7 @@ Data is stored as
 7. states: classified states beforehand with BI-ADD or other tools.
 
 Units: 
-K: generalized diffusion coefficient, um^2/s^alpha.
+log10_K: generalized diffusion coefficient in log10, um^2/s^alpha.
 alpha: anomalous diffusion exponent, real number between 0 and 2.
 mean_jump_disatnce: set of averages of jump distances in um.
 state: states defined in BI-ADD.
@@ -102,7 +102,7 @@ plt.tight_layout()
 plt.figure(f'p5', dpi=figure_resolution_in_dpi)
 p5 = sns.histplot(data=analysis_data2, x='displacements', stat='percent', hue='state', bins=number_of_bins, kde=True)
 p5.set_title(f'displacement histogram')
-p5.set_xlabel(r'$displacment(\mu m)$')
+p5.set_xlabel(r'displacment($\mu m$)')
 plt.yticks(fontsize=figure_font_size)
 plt.xticks(fontsize=figure_font_size)
 plt.xticks(rotation=90)
@@ -113,7 +113,7 @@ plt.tight_layout()
 plt.figure(f'p6', dpi=figure_resolution_in_dpi)
 p6 = sns.histplot(data=analysis_data1, x='duration', stat='percent', hue='state', bins=number_of_bins, kde=True)
 p6.set_title(f'trajectory length histogram')
-p6.set_xlabel(r'$duration(s)$')
+p6.set_xlabel(r'duration($s$)')
 plt.yticks(fontsize=figure_font_size)
 plt.xticks(fontsize=figure_font_size)
 plt.xticks(rotation=90)
@@ -124,8 +124,8 @@ plt.tight_layout()
 plt.figure(f'p7', dpi=figure_resolution_in_dpi)
 p7 = sns.lineplot(data=msd, x=msd['time'], y=msd['mean'], hue='state')
 p7.set_title(f'MSD')
-p7.set_xlabel(r'$time(s)$')
-p7.set_ylabel(r'$MSD(\mu m^2)$')
+p7.set_xlabel(r'time($s$)')
+p7.set_ylabel(r'MSD($\mu m^2$)')
 plt.yticks(fontsize=figure_font_size)
 plt.xticks(fontsize=figure_font_size)
 for state_idx, state in enumerate(states):
@@ -144,8 +144,8 @@ plt.tight_layout()
 plt.figure(f'p8', dpi=figure_resolution_in_dpi)
 p8 = sns.lineplot(data=tamsd, x=tamsd['time'], y=tamsd['mean'], hue='state')
 p8.set_title(f'Ensemble-averaged TAMSD')
-p8.set_xlabel(r'$lag\ time(s)$')
-p8.set_ylabel(r'$TAMSD(\mu m^2)$')
+p8.set_xlabel(r'lag\ time($s$)')
+p8.set_ylabel(r'TAMSD($\mu m^2$)')
 plt.yticks(fontsize=figure_font_size)
 plt.xticks(fontsize=figure_font_size)
 for state_idx, state in enumerate(states):

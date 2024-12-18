@@ -39,7 +39,7 @@ for condition in CONDITIONS:
 """
 From here, we treat data to make plots or print results.
 Data is stored as
-1.analysis_data1: (DataFrame: contains data of mean_jump_distance, K, alpha, state, length, traj_id, condition)
+1.analysis_data1: (DataFrame: contains data of mean_jump_distance, log10_K, alpha, state, duration, traj_id, condition)
 2.analysis_data2: (DataFrame: contains data of displacments, state, condition)
 3.state_markovs: (matrix: contains transition probability of conditions)
 4.state_graphs: (network: built from transitions between states(weight: nb of occurence of transitions) of conditions)
@@ -51,7 +51,7 @@ print(f'\nanalysis_data2:\n', analysis_data2)
 #p1: histogram with kde(kernel density estimation) plot of mean jump distance grouped by state.
 plt.figure(f'p1', dpi=figure_resolution_in_dpi)
 p1 = sns.histplot(analysis_data1, x=f'mean_jump_d', stat='percent', hue='condition', bins=number_of_bins, kde=True)
-p1.set_xlabel(r'$mean\ jump-distance(\mu m)$')
+p1.set_xlabel(r'mean\ jump-distance($\mu m$)')
 p1.set_title(f'mean_jump_distance for each state')
 plt.yticks(fontsize=figure_font_size)
 plt.xticks(fontsize=figure_font_size)
@@ -72,7 +72,7 @@ plt.tight_layout()
 plt.figure(f'p3', dpi=figure_resolution_in_dpi)
 p3 = sns.histplot(data=analysis_data2, x='displacements', stat='percent', hue='condition', bins=number_of_bins, kde=True)
 p3.set_title(f'displacement histogram')
-p3.set_xlabel(r'$displacment(\mu m)$')
+p3.set_xlabel(r'displacment($\mu m$)')
 plt.yticks(fontsize=figure_font_size)
 plt.xticks(fontsize=figure_font_size)
 plt.xticks(rotation=90)
