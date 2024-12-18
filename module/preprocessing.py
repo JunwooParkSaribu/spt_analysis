@@ -26,7 +26,7 @@ def preprocessing(data, pixelmicrons, framerate, cutoff, tamsd_calcul=True):
     state_markov = [[0 for _ in range(len(total_states))] for _ in range(len(total_states))]
     analysis_data1 = {}
     analysis_data1[f'mean_jump_d'] = []
-    analysis_data1[f'K'] = []
+    analysis_data1[f'log10_K'] = []
     analysis_data1[f'alpha'] = []
     analysis_data1[f'state'] = []
     analysis_data1[f'duration'] = []
@@ -114,7 +114,7 @@ def preprocessing(data, pixelmicrons, framerate, cutoff, tamsd_calcul=True):
 
                 # add data1 for the visualization
                 analysis_data1[f'mean_jump_d'].append(jump_distances.mean())
-                analysis_data1[f'K'].append(np.log10(bi_add_K))
+                analysis_data1[f'log10_K'].append(np.log10(bi_add_K))
                 analysis_data1[f'alpha'].append(bi_add_alpha)
                 analysis_data1[f'state'].append(state)
                 analysis_data1[f'duration'].append((sub_trajectory.frame.iloc[-1] - sub_trajectory.frame.iloc[0] + 1) * framerate)

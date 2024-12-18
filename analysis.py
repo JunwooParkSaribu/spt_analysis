@@ -62,7 +62,7 @@ print(f'\nEnsemble-averaged TAMSD:\n', tamsd)
 #p1: histogram with kde(kernel density estimation) plot of mean jump distance grouped by state.
 plt.figure(f'p1', dpi=figure_resolution_in_dpi)
 p1 = sns.histplot(analysis_data1, x=f'mean_jump_d', stat='percent', hue='state', bins=number_of_bins, kde=True)
-p1.set_xlabel(r'$mean\ jump-distance(\mu m)$')
+p1.set_xlabel(r'mean jump-distance($\mu m$)')
 p1.set_title(f'mean_jump_distance for each state')
 plt.yticks(fontsize=figure_font_size)
 plt.xticks(fontsize=figure_font_size)
@@ -71,10 +71,10 @@ plt.tight_layout()
 
 
 #p2: joint distribution plot of alpha(x-axis) and K(y-axis) for each state
-p2 = sns.jointplot(data=analysis_data1, x=f'alpha', y=f'K', kind='scatter', hue='state', height=12, xlim=(-0.2, 2.2), 
+p2 = sns.jointplot(data=analysis_data1, x=f'alpha', y=f'log10_K', kind='scatter', hue='state', height=12, xlim=(-0.2, 2.2), 
                    joint_kws={'data':analysis_data1, 'size':'duration', 'sizes':(40, 400), 'alpha':0.5})
 p2.set_axis_labels(xlabel=r'$\alpha$', ylabel=r'$log_{10}K(\mu m^2/s^\alpha)$', fontsize=figure_font_size)
-p2.figure.suptitle(r'$\alpha$, K distribution for each state')
+p2.figure.suptitle(r'$\alpha$, $K$ distribution for each state')
 p2.ax_joint.set_yticklabels(p2.ax_joint.get_yticks(), fontsize = figure_font_size)
 p2.ax_joint.set_xticklabels(p2.ax_joint.get_xticks(), fontsize = figure_font_size)
 plt.tight_layout()
