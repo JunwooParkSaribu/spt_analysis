@@ -50,9 +50,9 @@ print(f'\nanalysis_data2:\n', analysis_data2)
 
 #p1: histogram with kde(kernel density estimation) plot of mean jump distance grouped by state.
 plt.figure(f'p1', dpi=figure_resolution_in_dpi)
-p1 = sns.histplot(analysis_data1, x=f'mean_jump_d', stat='percent', hue='condition', bins=number_of_bins, kde=True)
+p1 = sns.histplot(data=analysis_data1, x=f'mean_jump_d', stat='percent', hue='condition', common_norm=False, bins=number_of_bins, kde=True)
 p1.set_xlabel(r'mean jump-distance($\mu m$)')
-p1.set_title(f'mean jump-distance for each state')
+p1.set_title(f'mean jump-distance for each condition')
 plt.yticks(fontsize=figure_font_size)
 plt.xticks(fontsize=figure_font_size)
 plt.xticks(rotation=90)
@@ -61,7 +61,7 @@ plt.tight_layout()
 
 #p2: histogram of states
 plt.figure(f'p2', dpi=figure_resolution_in_dpi)
-p2 = sns.histplot(data=analysis_data1, x="state", stat='percent', hue='condition')
+p2 = sns.histplot(data=analysis_data1, x="state", stat='percent', hue='condition', common_norm=False)
 p2.set_title(f'population of states')
 plt.yticks(fontsize=figure_font_size)
 plt.xticks(fontsize=figure_font_size)
@@ -70,7 +70,7 @@ plt.tight_layout()
 
 #p3: displacement histogram
 plt.figure(f'p3', dpi=figure_resolution_in_dpi)
-p3 = sns.histplot(data=analysis_data2, x='displacements', stat='percent', hue='condition', bins=number_of_bins, kde=True)
+p3 = sns.histplot(data=analysis_data2, x='displacements', stat='percent', hue='condition', common_norm=False, bins=number_of_bins, kde=True)
 p3.set_title(f'displacement histogram')
 p3.set_xlabel(r'displacment($\mu m$)')
 plt.yticks(fontsize=figure_font_size)
