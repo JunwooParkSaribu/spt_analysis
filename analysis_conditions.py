@@ -35,9 +35,8 @@ for condition in CONDITIONS:
     state_graphs.append(state_graph)
     
 
-
 """
-From here, we treat data to make plots or print results.
+From here, we treat the data to make plots or print results.
 Data is stored as
 1.analysis_data1: (DataFrame: contains data of mean_jump_distance, log10_K, alpha, state, duration, traj_id, condition)
 2.analysis_data2: (DataFrame: contains data of displacments, state, condition)
