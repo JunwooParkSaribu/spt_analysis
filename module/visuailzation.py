@@ -23,7 +23,7 @@ def trajectory_visualization(data:pd.DataFrame, cutoff:int):
                 color = (0, 255, 0)
             else:
                 color = (255, 0, 0)
-            pts = np.array([[int(x * 10**resolution_factor), int(y * 10**resolution_factor)] for x, y in zip(single_traj['x'], single_traj['y'])], np.int32)
+            pts = np.array([[int((x - min_x) * 10**resolution_factor), int((y - min_y) * 10**resolution_factor)] for x, y in zip(single_traj['x'], single_traj['y'])], np.int32)
             for i in range(len(pts)-1):
                 prev_pt = pts[i]
                 next_pt = pts[i+1]
