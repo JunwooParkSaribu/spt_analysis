@@ -21,8 +21,10 @@ def read_csv(file):
         state = np.zeros(len(csv_data.iloc[:, 1]), dtype=np.int32)
     elif 'Hybrid' in file:
         state = np.zeros(len(csv_data.iloc[:, 1]), dtype=np.int32) + 1
-    else:
+    elif 'Mobile' in file:
         state = np.zeros(len(csv_data.iloc[:, 1]), dtype=np.int32) + 2
+    else:
+        state = np.zeros(len(csv_data.iloc[:, 1]), dtype=np.int32) + 3
     K = np.zeros(len(csv_data.iloc[:, 1]))
     alpha = np.zeros(len(csv_data.iloc[:, 1]))
     csv_data = csv_data.assign(z = z)
