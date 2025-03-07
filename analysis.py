@@ -3,6 +3,8 @@ import matplotlib.pyplot as plt
 from module.visuailzation import trajectory_visualization
 from module.preprocessing import preprocessing, get_groundtruth_with_label
 from module.fileIO.DataLoad import read_multiple_csv, read_multiple_h5s
+from scipy.stats import bootstrap
+import numpy as np
 
 
 """
@@ -13,9 +15,11 @@ FRAMERATE = 0.01
 CUTOFF = 5
 FOLDER = 'condition2'
 number_of_bins = 50
+bootstrap_bins = 300
 figure_resolution_in_dpi = 200
 figure_font_size = 20
-
+y_lim_for_percent = [0, 20]
+x_lim_for_mean_jump_distances = [0, 0.5]
 
 """
 preprocessing generates 7 data.
@@ -28,7 +32,7 @@ preprocessing includes below steps.
 3. generate 4 DataFrames, 1 ndarray representation of markovchain, 1 graph respresentation of markovchain, 1 list containing states
 """
 original_data = read_multiple_h5s(path=FOLDER)
-analysis_data1, analysis_data2, state_markov, state_graph, msd, tamsd, states = preprocessing(data=original_data, pixelmicrons=PIXELMICRONS, framerate=FRAMERATE, cutoff=CUTOFF)
+analysis_data1, analysis_data2, state_markov, state_graph, msd, tamsd, states = preprocessing(data=original_data, pixelmicrons=PIXELMICRONS, framerate=FRAMERATE, cutoff=CUTOFF, tamsd_calcul=False)
 #analysis_data1, analysis_data2, state_markov, state_graph, msd, tamsd, states = get_groundtruth_with_label(data=original_data, label_folder='dummy', pixelmicrons=PIXELMICRONS, framerate=FRAMERATE, cutoff=CUTOFF)
 
 
@@ -67,6 +71,8 @@ p1.set_title(f'mean jump-distance for each state')
 plt.yticks(fontsize=figure_font_size)
 plt.xticks(fontsize=figure_font_size)
 plt.xticks(rotation=90)
+plt.ylim(y_lim_for_percent)
+plt.xlim(x_lim_for_mean_jump_distances)
 plt.tight_layout()
 
 
@@ -106,6 +112,8 @@ p5.set_xlabel(r'displacment($\mu m$)')
 plt.yticks(fontsize=figure_font_size)
 plt.xticks(fontsize=figure_font_size)
 plt.xticks(rotation=90)
+plt.ylim(y_lim_for_percent)
+plt.xlim(x_lim_for_mean_jump_distances)
 plt.tight_layout()
 
 
@@ -157,6 +165,38 @@ for state_idx, state in enumerate(states):
     upper_bound = [mu + sigma for mu, sigma in zip(mus, sigmas)]
     #plt.fill_between(tamsd_per_state['time'], lower_bound, upper_bound, alpha=.3, color=f'C{state_idx}')
 plt.xticks(rotation=90)
+plt.tight_layout()
+
+
+#p9: bootstrapped distribution with kde(kernel density estimation) plot for averaged mean jump-distances grouped by state.
+plt.figure(f'p9', dpi=figure_resolution_in_dpi)
+bootstrapped_data = {'averaged_mean_jump_distances':[], 'state':[]}
+bootstrapped_results = []
+for st in analysis_data1['state'].unique():
+    bts = bootstrap([np.array(analysis_data1[analysis_data1['state'] == st]['mean_jump_d'])], np.mean, n_resamples=1000, confidence_level=0.95)
+    bootstrapped_data['averaged_mean_jump_distances'].extend(bts.bootstrap_distribution)
+    bootstrapped_data['state'].extend([st] * len(bts.bootstrap_distribution))
+    bootstrapped_results.append(bts)
+p9 = sns.histplot(bootstrapped_data, x=f'averaged_mean_jump_distances', stat='percent', hue='state', bins=bootstrap_bins, kde=False)
+p9.set_xlabel(r'bootstrapped mean jump-distances($\mu m$)')
+p9.set_title(f'bootstrapped mean jump-distances for each state')
+plt.yticks(fontsize=figure_font_size)
+plt.xticks(fontsize=figure_font_size)
+plt.xticks(rotation=90)
+plt.ylim(y_lim_for_percent)
+plt.xlim(x_lim_for_mean_jump_distances)
+plt.tight_layout()
+
+
+#p10: population of each state as pie chart.
+plt.figure(f'p10', dpi=figure_resolution_in_dpi)
+state_population = []
+state_labels = []
+for st in analysis_data1['state'].unique():
+    state_population.append(len(analysis_data1[analysis_data1['state'] == st]))
+    state_labels.append(st)
+plt.pie(x=state_population, labels=state_labels, autopct='%.0f%%')
+plt.title('Population of each state')
 plt.tight_layout()
 
 

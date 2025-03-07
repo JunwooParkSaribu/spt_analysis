@@ -13,12 +13,23 @@ def preprocessing(data, pixelmicrons, framerate, cutoff, tamsd_calcul=True):
     convert_dict = {'state': int}
     data = data.astype(convert_dict)
     traj_indices = pd.unique(data['traj_idx'])
+    total_states = sorted(data['state'].unique())
 
+    # state re-ordering w.r.t. K
+    avg_ks = []
+    for st in total_states:
+        avg_ks.append(data['K'][data['state']==st].mean())
+    avg_ks = np.array(avg_ks)
+    prev_states = np.argsort(avg_ks)
+    ordered_states = np.empty(len(data['state']), dtype=np.uint8)
+    for st_idx in range(len(ordered_states)):
+        ordered_states[st_idx] = prev_states[data['state'].iloc[st_idx]]
+    data['state'] = ordered_states
 
     # initializations
     dim = 2 # will be changed in future.
     max_frame = data.frame.max()
-    total_states = sorted(data['state'].unique())
+
     product_states = list(product(total_states, repeat=2))
     state_graph = nx.DiGraph()
     state_graph.add_nodes_from(total_states)

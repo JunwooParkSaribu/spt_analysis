@@ -3,6 +3,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from module.preprocessing import preprocessing
 from module.fileIO.DataLoad import read_multiple_csv, read_multiple_h5s
+from scipy.stats import bootstrap
+import numpy as np
 
 
 """
@@ -13,8 +15,11 @@ FRAMERATE = 0.01
 CUTOFF = 5
 CONDITIONS = ['condition1', 'condition2']
 number_of_bins = 50
+bootstrap_bins = 300
 figure_resolution_in_dpi = 200
 figure_font_size = 20
+y_lim_for_percent = [0, 20]
+x_lim_for_mean_jump_distances = [0, 0.5]
 
 
 """
@@ -75,6 +80,46 @@ p3.set_xlabel(r'displacment($\mu m$)')
 plt.yticks(fontsize=figure_font_size)
 plt.xticks(fontsize=figure_font_size)
 plt.xticks(rotation=90)
+plt.tight_layout()
+
+
+#p4: bootstrapped distribution with kde(kernel density estimation) plot for averaged mean jump-distances grouped by state.
+plt.figure(f'p4', dpi=figure_resolution_in_dpi)
+bootstrapped_data = {'averaged_mean_jump_distances':[], 'state':[], 'condition':[]}
+bootstrapped_results = []
+for cd in analysis_data1['condition'].unique():
+    cond_data = analysis_data1[analysis_data1['condition']==cd]
+    for st in cond_data['state'].unique():
+        bts = bootstrap([np.array(cond_data[cond_data['state'] == st]['mean_jump_d'])], np.mean, n_resamples=1000, confidence_level=0.95)
+        bootstrapped_data['averaged_mean_jump_distances'].extend(bts.bootstrap_distribution)
+        bootstrapped_data['state'].extend([st] * len(bts.bootstrap_distribution))
+        bootstrapped_data['condition'].extend([cd] * len(bts.bootstrap_distribution))
+        bootstrapped_results.append(bts)
+p4 = sns.histplot(bootstrapped_data, x=f'averaged_mean_jump_distances', stat='percent', hue='condition', bins=bootstrap_bins, kde=False)
+p4.set_xlabel(r'bootstrapped mean jump-distances($\mu m$)')
+p4.set_title(f'bootstrapped mean jump-distances for each state')
+plt.yticks(fontsize=figure_font_size)
+plt.xticks(fontsize=figure_font_size)
+plt.xticks(rotation=90)
+plt.ylim(y_lim_for_percent)
+plt.xlim(x_lim_for_mean_jump_distances)
+plt.tight_layout()
+
+
+#p5: population of each state per condition
+state_population = []
+state_per_condition = {}
+for cd in analysis_data1['condition'].unique():
+    state_per_condition[cd] = {}
+    cond_data = analysis_data1[analysis_data1['condition']==cd]
+    for st in cond_data['state'].unique():
+        state_per_condition[cd][st] = len(cond_data[cond_data['state'] == st]) / len(cond_data)
+for st, cd in zip(np.array(analysis_data1['state']), np.array(analysis_data1['condition'])):
+    state_population.append(state_per_condition[cd][st])
+analysis_data1['state_population'] = state_population
+p5 = sns.catplot(data=analysis_data1, x="condition", y="state_population", hue='state', kind="bar", height=12)
+p5.set_axis_labels(fontsize=figure_font_size)
+p5.figure.suptitle(r'Population of each state per condition')
 plt.tight_layout()
 
 
