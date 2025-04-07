@@ -63,12 +63,20 @@ plt.xticks(rotation=90)
 plt.tight_layout()
 
 
-#p2: histogram of states
-plt.figure(f'p2', dpi=figure_resolution_in_dpi)
-p2 = sns.histplot(data=analysis_data1, x="state", stat='percent', hue='condition', common_norm=False)
-p2.set_title(f'population of states')
-plt.yticks(fontsize=figure_font_size)
-plt.xticks(fontsize=figure_font_size)
+#p2: population of each state per condition
+state_population = []
+state_per_condition = {}
+for cd in analysis_data1['condition'].unique():
+    state_per_condition[cd] = {}
+    cond_data = analysis_data1[analysis_data1['condition']==cd]
+    for st in cond_data['state'].unique():
+        state_per_condition[cd][st] = len(cond_data[cond_data['state'] == st]) / len(cond_data)
+for st, cd in zip(np.array(analysis_data1['state']), np.array(analysis_data1['condition'])):
+    state_population.append(state_per_condition[cd][st])
+analysis_data1['state_population'] = state_population
+p2 = sns.catplot(data=analysis_data1, x="condition", y="state_population", hue='state', kind="bar", height=12)
+p2.set_axis_labels(fontsize=figure_font_size)
+p2.figure.suptitle(r'Population of each state per condition')
 plt.tight_layout()
 
 
@@ -103,23 +111,6 @@ plt.xticks(fontsize=figure_font_size)
 plt.xticks(rotation=90)
 plt.ylim(y_lim_for_percent)
 plt.xlim(x_lim_for_mean_jump_distances)
-plt.tight_layout()
-
-
-#p5: population of each state per condition
-state_population = []
-state_per_condition = {}
-for cd in analysis_data1['condition'].unique():
-    state_per_condition[cd] = {}
-    cond_data = analysis_data1[analysis_data1['condition']==cd]
-    for st in cond_data['state'].unique():
-        state_per_condition[cd][st] = len(cond_data[cond_data['state'] == st]) / len(cond_data)
-for st, cd in zip(np.array(analysis_data1['state']), np.array(analysis_data1['condition'])):
-    state_population.append(state_per_condition[cd][st])
-analysis_data1['state_population'] = state_population
-p5 = sns.catplot(data=analysis_data1, x="condition", y="state_population", hue='state', kind="bar", height=12)
-p5.set_axis_labels(fontsize=figure_font_size)
-p5.figure.suptitle(r'Population of each state per condition')
 plt.tight_layout()
 
 
