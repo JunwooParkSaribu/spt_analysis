@@ -42,33 +42,32 @@ def read_multiple_h5s(path):
 
     f_list = glob.glob(f'{path}/*{prefix}.h5')
     for f_idx, file in enumerate(f_list):
-        df, meta = read_h5(file)
-        if f_idx != 0:
+        try:
+            df, meta = read_h5(file)
+            if f_idx == 0:
+                meta_info.append(meta['sample_id'])
+
             if meta['sample_id'] not in meta_info:
                 files_not_same_conditions.append(file)
-                continue
-            else:
-                pure_f_name = file.split('/')[-1].split(f'{prefix}.h5')[0]
-                df['filename'] = [pure_f_name] * len(df['traj_idx'])
-                traj_indices = df['traj_idx']
-                traj_indices = [f'{pure_f_name}_{idx}' for idx in traj_indices]
-                df['traj_idx'] = traj_indices
-        else:
-            meta_info.append(meta['sample_id'])
+
             pure_f_name = file.split('/')[-1].split(f'{prefix}.h5')[0]
             df['filename'] = [pure_f_name] * len(df['traj_idx'])
             traj_indices = df['traj_idx']
             traj_indices = [f'{pure_f_name}_{idx}' for idx in traj_indices]
             df['traj_idx'] = traj_indices
-        dfs.append(df)
+            dfs.append(df)
+        except:
+            print(f'*** No trajectory data is found in the file: {file}, skipping this file. ***')
+
     grouped_df = pd.concat(dfs)
 
     if len(files_not_same_conditions) > 1:
-        print('*****************************************************************************************')
-        print("Below files are skipped due to their conditions are not same, check metadata of h5 file")
+        print('********************************************************************************************************************************************************')
+        print("Below files were processed in different folders in BI-ADD even though they are grouped for a same condition in the analysis.")
+        print("Next time, it would be recommended to run BI-ADD with placing these files under a single folder to avoid unexpcted errors/bias if they have same condition.")
         for ff in files_not_same_conditions:
             print(ff)
-        print('*****************************************************************************************')
+        print('********************************************************************************************************************************************************')
     return grouped_df
 
 

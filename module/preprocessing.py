@@ -21,9 +21,10 @@ def preprocessing(data, pixelmicrons, framerate, cutoff, tamsd_calcul=True):
         avg_ks.append(data['K'][data['state']==st].mean())
     avg_ks = np.array(avg_ks)
     prev_states = np.argsort(avg_ks)
+    state_reorder = {st:idx for idx, st in enumerate(prev_states)}
     ordered_states = np.empty(len(data['state']), dtype=np.uint8)
     for st_idx in range(len(ordered_states)):
-        ordered_states[st_idx] = prev_states[data['state'].iloc[st_idx]]
+        ordered_states[st_idx] = state_reorder[data['state'].iloc[st_idx]]
     data['state'] = ordered_states
 
     # initializations
