@@ -104,10 +104,11 @@ def preprocessing(data, pixelmicrons, framerate, cutoff, tamsd_calcul=True):
                 sub_trajectory.y -= sub_trajectory.y.iloc[0]
                 sub_trajectory.z -= sub_trajectory.z.iloc[0]
 
-                # calcultae jump distances
-                jump_distances = np.sqrt((sub_trajectory.x.iloc[1:].to_numpy() - sub_trajectory.x.iloc[:-1].to_numpy()) ** 2 + (sub_trajectory.y.iloc[1:].to_numpy() - sub_trajectory.y.iloc[:-1].to_numpy()) ** 2)
+                # calcultae jump distances                
+                jump_distances = (np.sqrt(((sub_trajectory.x.iloc[1:].to_numpy() - sub_trajectory.x.iloc[:-1].to_numpy()) ** 2) / (sub_trajectory.frame.iloc[1:].to_numpy() - sub_trajectory.frame.iloc[:-1].to_numpy())
+                                         + ((sub_trajectory.y.iloc[1:].to_numpy() - sub_trajectory.y.iloc[:-1].to_numpy()) ** 2) / (sub_trajectory.frame.iloc[1:].to_numpy() - sub_trajectory.frame.iloc[:-1].to_numpy()))) 
 
-
+                
                 # MSD
                 msd_ragged_ens_trajs[state].append(((sub_trajectory.x.to_numpy())**2 + (sub_trajectory.y.to_numpy())**2) / dim / 2)
 
