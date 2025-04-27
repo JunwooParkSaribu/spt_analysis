@@ -37,7 +37,7 @@ If you want to calculate tamsd, set it as True. It is off in default since tamsd
 """
 original_data = read_multiple_h5s(path=FOLDER)
 analysis_data1, analysis_data2, state_markov, state_graph, msd, tamsd, states, state_changing_duration = preprocessing(data=original_data, pixelmicrons=PIXELMICRONS, framerate=FRAMERATE, cutoff=CUTOFF, tamsd_calcul=False)
-trajectory_image, legend_patch, cmap_for_graph = trajectory_visualization(original_data, analysis_data1, CUTOFF, PIXELMICRONS)
+trajectory_image, legend_patch, cmap_for_graph, cmap_for_plot = trajectory_visualization(original_data, analysis_data1, CUTOFF, PIXELMICRONS)
 
 
 
@@ -84,7 +84,7 @@ plt.tight_layout()
 
 
 #p2: joint distribution plot of alpha(x-axis) and K(y-axis) for each state
-p2 = sns.jointplot(data=analysis_data1, x=f'alpha', y=f'log10_K', kind='scatter', hue='state', height=12, xlim=(-0.2, 2.2), 
+p2 = sns.jointplot(data=analysis_data1, x=f'alpha', y=f'log10_K', kind='scatter', hue='state', palette=cmap_for_plot, height=12, xlim=(-0.2, 2.2), 
                    joint_kws={'data':analysis_data1, 'size':'duration', 'sizes':(40, 400), 'alpha':0.5})
 p2.set_axis_labels(xlabel=r'$\alpha$', ylabel=r'$log_{10}K(\mu m^2/sec^\alpha)$', fontsize=figure_font_size)
 p2.figure.suptitle(r'$\alpha$, $K$ distribution for each state')

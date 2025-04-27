@@ -39,6 +39,7 @@ def trajectory_visualization(original_data:pd.DataFrame, analysis_data1:pd.DataF
     scale = 20
     thickness = 1
     color_maps = {}
+    color_maps_plot = {}
 
     min_x = original_data['x'].min()
     min_y = original_data['y'].min()
@@ -55,6 +56,7 @@ def trajectory_visualization(original_data:pd.DataFrame, analysis_data1:pd.DataF
             state = analysis_data1[analysis_data1['traj_id'] == single_traj['traj_idx'].iloc[0]]['state'].iloc[0]
             if traj_color not in color_maps and traj_color != 'yellow':
                 color_maps[traj_color] = str(state)
+                color_maps_plot[state] = traj_color
             if len(single_traj) >= cutoff:
                 traj_color = mcolors.to_rgb(traj_color)
                 traj_color = (int(traj_color[2]*255), int(traj_color[1]*255), int(traj_color[0]*255))  # BGR color for cv2
@@ -66,8 +68,9 @@ def trajectory_visualization(original_data:pd.DataFrame, analysis_data1:pd.DataF
     cv2.line(image, [int(max(0, x_width - 5*scale - int(scale/pixelmicron))), int(max(0, y_width - 5*scale))], [int(max(0, x_width - 5*scale)) , int(max(0, y_width - 5*scale))], (255, 255, 255), 6)
     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
     color_maps['yellow'] = 'transitioning'
+    color_maps_plot['transitioning'] = 'yellow'
     patches =[mpatches.Patch(color=c,label=color_maps[c]) for c in color_maps]
-    return image, patches, color_maps
+    return image, patches, color_maps, color_maps_plot
 
 
 def draw_labeled_multigraph(G, attr_names, cmap=None, ax=None):
