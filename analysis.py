@@ -103,18 +103,19 @@ plt.tight_layout()
 
 
 #p4: state transitioning probabilities
-fig, axs = plt.subplots(nrows=2, ncols=len(states))
-duration_bins = np.linspace(0, 2, 100)  # bin range: duration in seconds
-for st, ax in zip(states, axs[0]):
-    for next_st in states:
-        if st != next_st:
-            sns.histplot(state_changing_duration[st][next_st], bins=duration_bins, kde=True, ax=ax)
-            ax.set_title(f'Duration of transitioning trajectory for the states: {st} -> {next_st}')
-            ax.set_xlabel(r'Duration (sec)')
-draw_labeled_multigraph(G=state_graph, attr_names=["count", "freq"], cmap=cmap_for_graph, ax=axs[1, 0])
-axs[1, 1].imshow(trajectory_image)
-axs[1, 1].legend(handles=legend_patch, loc='upper right', borderaxespad=0.)
-fig.tight_layout()
+if len(states) >= 2:  # make plot only when the total number of different states is >= 2.
+    fig, axs = plt.subplots(nrows=2, ncols=len(states))
+    duration_bins = np.linspace(0, 2, 100)  # bin range: duration in seconds
+    for st, ax in zip(states, axs[0]):
+        for next_st in states:
+            if st != next_st:
+                sns.histplot(state_changing_duration[st][next_st], bins=duration_bins, kde=True, ax=ax)
+                ax.set_title(f'Duration of transitioning trajectory for the states: {st} -> {next_st}')
+                ax.set_xlabel(r'Duration (sec)')
+    draw_labeled_multigraph(G=state_graph, attr_names=["count", "freq"], cmap=cmap_for_graph, ax=axs[1, 0])
+    axs[1, 1].imshow(trajectory_image)
+    axs[1, 1].legend(handles=legend_patch, loc='upper right', borderaxespad=0.)
+    fig.tight_layout()
 
 
 #p5: displacement histogram
