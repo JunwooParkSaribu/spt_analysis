@@ -63,7 +63,7 @@ def read_multiple_h5s(path):
 
     if len(files_not_same_conditions) > 1:
         print('********************************************************************************************************************************************************')
-        print("Below files were processed in different folders in BI-ADD even though they are grouped for a same condition in the analysis.")
+        print("Below files were processed in different folders or seperately while the prediction with BI-ADD even though they are grouped for a same condition in the analysis.")
         print("Next time, it would be recommended to run BI-ADD with placing these files under a single folder to avoid unexpcted errors/bias if they have same condition.")
         for ff in files_not_same_conditions:
             print(ff)
