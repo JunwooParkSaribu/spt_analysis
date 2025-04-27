@@ -223,6 +223,9 @@ def preprocessing(data, pixelmicrons, framerate, cutoff, tamsd_calcul=True):
     msd = pd.DataFrame(msd)
     tamsd = pd.DataFrame(tamsd)
 
+    if tamsd_calcul == False:
+        tamsd = None
+        
     print('** preprocessing finished **')
     return analysis_data1, analysis_data2, state_markov, state_graph, msd, tamsd, total_states, state_changing_duration
 

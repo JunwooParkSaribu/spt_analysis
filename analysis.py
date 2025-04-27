@@ -7,11 +7,17 @@ from module.fileIO.DataLoad import read_multiple_csv, read_multiple_h5s
 from scipy.stats import bootstrap
 
 
+"""
+PUBLIC_DATA_PATHS = [f'fus_test/20250219_condensates_IRarea/tight', f'fus_test/20250219_condensates_IRarea/wide', 
+                     f'fus_test/20250219_condensates_nonIRarea/tight_area', f'fus_test/20250219_condensates_nonIRarea/wide_area',
+                     f'fus_test/20250219_noncondensates/condition0', f'fus_test/20250219_noncondensates/condition1',
+                     f'fus_test/20250219_whole']
+"""
 
 """
 Options for the analysis, processing of the data.
 """
-FOLDER = 'condition2'  # The folder containing result .h5 files, condition2 contains samples of simulated fBm trajectories transitioning its states.
+FOLDER = f'fus_test/20250219_condensates_IRarea/tight'  # The folder containing result .h5 files, condition2 contains samples of simulated fBm trajectories transitioning its states.
 PIXELMICRONS = 0.16  # length of pixel in micrometer. (0.16 -> the length of each pixel is 0.16 micrometer, it varies depending on microscopy.)
 FRAMERATE = 0.01  # exposure time of video for each frame in seconds. (0.01 corresponds to the 10ms) 
 CUTOFF = 5   # mininum length of trajectory to consider
@@ -163,23 +169,24 @@ plt.tight_layout()
 
 
 #p8: Ensemble-averaged TAMSD
-plt.figure(f'p8', dpi=figure_resolution_in_dpi)
-p8 = sns.lineplot(data=tamsd, x=tamsd['time'], y=tamsd['mean'], hue='state')
-p8.set_title(f'Ensemble-averaged TAMSD')
-p8.set_xlabel(r'lag time($s$)')
-p8.set_ylabel(r'$\frac{\text{TAMSD}}{\text{2} \cdot \text{dimension}}$ ($\mu m^2$)')
-plt.yticks(fontsize=figure_font_size)
-plt.xticks(fontsize=figure_font_size)
-for state_idx, state in enumerate(states):
-    # lower, upper bound related to the number of data (TODO: testing)
-    tamsd_per_state = tamsd[tamsd['state'] == state].sort_values('time')
-    mus = tamsd_per_state['mean']
-    sigmas = tamsd_per_state['std']
-    lower_bound = [mu - sigma for mu, sigma in zip(mus, sigmas)]
-    upper_bound = [mu + sigma for mu, sigma in zip(mus, sigmas)]
-    #plt.fill_between(tamsd_per_state['time'], lower_bound, upper_bound, alpha=.3, color=f'C{state_idx}')
-plt.xticks(rotation=90)
-plt.tight_layout()
+if tamsd is not None:
+    plt.figure(f'p8', dpi=figure_resolution_in_dpi)
+    p8 = sns.lineplot(data=tamsd, x=tamsd['time'], y=tamsd['mean'], hue='state')
+    p8.set_title(f'Ensemble-averaged TAMSD')
+    p8.set_xlabel(r'lag time($s$)')
+    p8.set_ylabel(r'$\frac{\text{TAMSD}}{\text{2} \cdot \text{dimension}}$ ($\mu m^2$)')
+    plt.yticks(fontsize=figure_font_size)
+    plt.xticks(fontsize=figure_font_size)
+    for state_idx, state in enumerate(states):
+        # lower, upper bound related to the number of data (TODO: testing)
+        tamsd_per_state = tamsd[tamsd['state'] == state].sort_values('time')
+        mus = tamsd_per_state['mean']
+        sigmas = tamsd_per_state['std']
+        lower_bound = [mu - sigma for mu, sigma in zip(mus, sigmas)]
+        upper_bound = [mu + sigma for mu, sigma in zip(mus, sigmas)]
+        #plt.fill_between(tamsd_per_state['time'], lower_bound, upper_bound, alpha=.3, color=f'C{state_idx}')
+    plt.xticks(rotation=90)
+    plt.tight_layout()
 
 
 #p9: bootstrapped distribution with kde(kernel density estimation) plot for averaged mean jump-distances grouped by state.
