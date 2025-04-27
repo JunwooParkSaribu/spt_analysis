@@ -1,13 +1,14 @@
 import numpy as np
 import pandas as pd
 import networkx as nx
-from itertools import product
+from itertools import product, permutations
 from module.fileIO import DataLoad
 from tqdm import tqdm
 
 
 def preprocessing(data, pixelmicrons, framerate, cutoff, tamsd_calcul=True):
     # load FreeTrace+Bi-ADD data without NaN (NaN where trajectory length is shorter than 5, default in BI-ADD)
+    color_palette = ['red','cyan','green','blue','gray','pink']
     data = data.dropna()
     # using dictionary to convert specific columns
     convert_dict = {'state': int}
@@ -34,7 +35,11 @@ def preprocessing(data, pixelmicrons, framerate, cutoff, tamsd_calcul=True):
     product_states = list(product(total_states, repeat=2))
     state_graph = nx.DiGraph()
     state_graph.add_nodes_from(total_states)
-    state_graph.add_edges_from(product_states, weight=0)
+    state_graph.add_edges_from(product_states, count=0, freq=0)
+    if len(total_states) > 1:
+        state_changing_duration = {state[0]:{state[1]:[]} for state in list(permutations(total_states))}
+    else:
+        state_changing_duration = {total_states[0]:{total_states[0]:[]}}
     state_markov = [[0 for _ in range(len(total_states))] for _ in range(len(total_states))]
     analysis_data1 = {}
     analysis_data1[f'mean_jump_d'] = []
@@ -43,6 +48,7 @@ def preprocessing(data, pixelmicrons, framerate, cutoff, tamsd_calcul=True):
     analysis_data1[f'state'] = []
     analysis_data1[f'duration'] = []
     analysis_data1[f'traj_id'] = []
+    analysis_data1[f'color'] = []
     analysis_data2 = {}
     analysis_data2[f'displacements'] = []
     analysis_data2[f'state'] = []
@@ -69,12 +75,12 @@ def preprocessing(data, pixelmicrons, framerate, cutoff, tamsd_calcul=True):
         single_traj = data.loc[data['traj_idx'] == traj_idx].copy()
         
         # calculate state changes inside single trajectory
-        before_st = single_traj.state.iloc[0]
-        for st in single_traj.state:
-            state_graph[before_st][st]['weight'] += 1
-            before_st = st
+        #before_st = single_traj.state.iloc[0]
+        #for st in single_traj.state:
+        #    state_graph[before_st][st]['weight'] += 1
+        #    before_st = st
 
-        # chucnk into sub-trajectories
+        # chunk into sub-trajectories
         before_st = single_traj.state.iloc[0]
         chunk_idx = [0, len(single_traj)]
         for st_idx, st in enumerate(single_traj.state):
@@ -85,9 +91,10 @@ def preprocessing(data, pixelmicrons, framerate, cutoff, tamsd_calcul=True):
 
         for i in range(len(chunk_idx) - 1):
             sub_trajectory = single_traj.iloc[chunk_idx[i]:chunk_idx[i+1]].copy()
-
+            
             # trajectory length filter condition
             if len(sub_trajectory) >= cutoff:
+                
                 # state of trajectory
                 state = sub_trajectory.state.iloc[0]
                 bi_add_alpha = sub_trajectory.alpha.iloc[0]
@@ -99,6 +106,21 @@ def preprocessing(data, pixelmicrons, framerate, cutoff, tamsd_calcul=True):
                 sub_trajectory.z *= pixelmicrons 
                 bi_add_K *= (pixelmicrons**2/framerate**bi_add_alpha) #TODO: check again
 
+                frame_diffs = sub_trajectory.frame.iloc[1:].to_numpy() - sub_trajectory.frame.iloc[:-1].to_numpy()
+                duration = np.sum(frame_diffs) * framerate
+                
+                if len(chunk_idx) == 2:
+                    state_graph[state][state]['count'] += 1
+                else:
+                    if i >= 1:
+                        state_graph[prev_state][state]['count'] += 1
+                        state_changing_duration[prev_state][state].append(prev_duration)
+                    if i == len(chunk_idx) - 2:  # last state of chunked trjectory which is considered as non-state changing stae.
+                        state_graph[state][state]['count'] += 1 
+                prev_state = state
+                prev_duration = duration
+
+                
                 # coordinate normalize
                 sub_trajectory.x -= sub_trajectory.x.iloc[0]
                 sub_trajectory.y -= sub_trajectory.y.iloc[0]
@@ -108,7 +130,6 @@ def preprocessing(data, pixelmicrons, framerate, cutoff, tamsd_calcul=True):
                 jump_distances = (np.sqrt(((sub_trajectory.x.iloc[1:].to_numpy() - sub_trajectory.x.iloc[:-1].to_numpy()) ** 2) / (sub_trajectory.frame.iloc[1:].to_numpy() - sub_trajectory.frame.iloc[:-1].to_numpy())
                                          + ((sub_trajectory.y.iloc[1:].to_numpy() - sub_trajectory.y.iloc[:-1].to_numpy()) ** 2) / (sub_trajectory.frame.iloc[1:].to_numpy() - sub_trajectory.frame.iloc[:-1].to_numpy()))) 
 
-                
                 # MSD
                 msd_ragged_ens_trajs[state].append(((sub_trajectory.x.to_numpy())**2 + (sub_trajectory.y.to_numpy())**2) / dim / 2)
 
@@ -125,12 +146,17 @@ def preprocessing(data, pixelmicrons, framerate, cutoff, tamsd_calcul=True):
                 tamsd_ragged_ens_trajs[state].append(tamsd_tmp)
 
 
+                if len(chunk_idx) > 2:
+                    analysis_data1[f'color'].append("yellow")
+                else:
+                    analysis_data1[f'color'].append(color_palette[state])
+
                 # add data1 for the visualization
                 analysis_data1[f'mean_jump_d'].append(jump_distances.mean())
                 analysis_data1[f'log10_K'].append(np.log10(bi_add_K))
                 analysis_data1[f'alpha'].append(bi_add_alpha)
                 analysis_data1[f'state'].append(state)
-                analysis_data1[f'duration'].append((sub_trajectory.frame.iloc[-1] - sub_trajectory.frame.iloc[0] + 1) * framerate)
+                analysis_data1[f'duration'].append(duration)
                 analysis_data1[f'traj_id'].append(sub_trajectory.traj_idx.iloc[0])
 
                 # add data2 for the visualization
@@ -182,11 +208,14 @@ def preprocessing(data, pixelmicrons, framerate, cutoff, tamsd_calcul=True):
     # normalize markov chain
     for edge in state_graph.edges:
         src, dest = edge
-        weight = state_graph[src][dest]["weight"]
+        weight = state_graph[src][dest]["count"]
         state_markov[src][dest] = weight
     state_markov = np.array(state_markov, dtype=np.float64)
     for idx in range(len(total_states)):
         state_markov[idx] /= np.sum(state_markov[idx])
+    for edge in state_graph.edges:
+        src, dest = edge
+        state_graph[src][dest]['freq'] = np.round(state_markov[src][dest], 3)
 
 
     analysis_data1 = pd.DataFrame(analysis_data1).astype({'state': int, 'duration': float, 'traj_id':str})
@@ -195,7 +224,7 @@ def preprocessing(data, pixelmicrons, framerate, cutoff, tamsd_calcul=True):
     tamsd = pd.DataFrame(tamsd)
 
     print('** preprocessing finished **')
-    return analysis_data1, analysis_data2, state_markov, state_graph, msd, tamsd, total_states
+    return analysis_data1, analysis_data2, state_markov, state_graph, msd, tamsd, total_states, state_changing_duration
 
 
 def get_groundtruth_with_label(folder, label_folder, pixelmicrons, framerate, cutoff, tamsd_calcul=True):

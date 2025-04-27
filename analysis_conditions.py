@@ -8,7 +8,7 @@ import numpy as np
 
 
 """
-Option settings for data analysis.
+Option settings for data analysis. Same as analysis.py script but for the comparison of multiple conditions.
 """
 PIXELMICRONS = 0.16
 FRAMERATE = 0.01
@@ -31,7 +31,7 @@ state_markovs = []
 state_graphs = []
 for condition in CONDITIONS:
     data = read_multiple_h5s(path=condition)
-    data1, data2, state_markov, state_graph, msd, tamsd, states = preprocessing(data=data, pixelmicrons=PIXELMICRONS, framerate=FRAMERATE, cutoff=CUTOFF, tamsd_calcul=False)
+    data1, data2, state_markov, state_graph, msd, tamsd, states, state_changing_duration = preprocessing(data=data, pixelmicrons=PIXELMICRONS, framerate=FRAMERATE, cutoff=CUTOFF, tamsd_calcul=False)
     data1['condition'] = [condition] * len(data1)
     data2['condition'] = [condition] * len(data2)
     analysis_data1 = pd.concat([analysis_data1, data1], ignore_index=True)

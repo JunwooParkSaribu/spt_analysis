@@ -1,39 +1,44 @@
+import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
-from module.visuailzation import trajectory_visualization
+from module.visuailzation import trajectory_visualization, draw_labeled_multigraph
 from module.preprocessing import preprocessing, get_groundtruth_with_label
 from module.fileIO.DataLoad import read_multiple_csv, read_multiple_h5s
 from scipy.stats import bootstrap
-import numpy as np
+
 
 
 """
-Option settings for data analysis.
+Options for the analysis, processing of the data.
 """
-PIXELMICRONS = 0.16
-FRAMERATE = 0.01
-CUTOFF = 5
-FOLDER = 'condition2'
-number_of_bins = 50
+FOLDER = 'condition2'  # The folder containing result .h5 files, condition2 contains samples of simulated fBm trajectories transitioning its states.
+PIXELMICRONS = 0.16  # length of pixel in micrometer. (0.16 -> the length of each pixel is 0.16 micrometer, it varies depending on microscopy.)
+FRAMERATE = 0.01  # exposure time of video for each frame in seconds. (0.01 corresponds to the 10ms) 
+CUTOFF = 5   # mininum length of trajectory to consider
+number_of_bins = 50   # below are the general settings of result plots, you can change here or directly for each plot.
 bootstrap_bins = 300
 figure_resolution_in_dpi = 200
 figure_font_size = 20
 y_lim_for_percent = [0, 20]
 x_lim_for_mean_jump_distances = [0, 0.5]
 
+
+
 """
 preprocessing generates 7 data.
 @params: data folder path, pixel microns, frame rate, cutoff
-@output: DataFrame, DataFrame, ndarray, networkx grpah, DataFrame, DataFrame, list
+@output: DataFrame, DataFrame, ndarray, networkx grpah, DataFrame, DataFrame, list, dict
 
 preprocessing includes below steps.
-1. exclude the trajectory where length is shorter than CUTOFF
-2. convert from pixel unit to micrometer unit with PIXELMICRONS and FRAMERATE
-3. generate 4 DataFrames, 1 ndarray representation of markovchain, 1 graph respresentation of markovchain, 1 list containing states
+1. exclude the trajectory where length is shorter than CUTOFF.
+2. convert from pixel unit to micrometer unit with PIXELMICRONS and FRAMERATE.
+3. generate 4 DataFrames, 1 ndarray representation of markovchain, 1 graph respresentation of markovchain, 1 list containing states, 1 dictionary containing the duration of transitioning trajectories.
+If you want to calculate tamsd, set it as True. It is off in default since tamsd take time to calculate it.
 """
 original_data = read_multiple_h5s(path=FOLDER)
-analysis_data1, analysis_data2, state_markov, state_graph, msd, tamsd, states = preprocessing(data=original_data, pixelmicrons=PIXELMICRONS, framerate=FRAMERATE, cutoff=CUTOFF, tamsd_calcul=False)
-#analysis_data1, analysis_data2, state_markov, state_graph, msd, tamsd, states = get_groundtruth_with_label(data=original_data, label_folder='dummy', pixelmicrons=PIXELMICRONS, framerate=FRAMERATE, cutoff=CUTOFF)
+analysis_data1, analysis_data2, state_markov, state_graph, msd, tamsd, states, state_changing_duration = preprocessing(data=original_data, pixelmicrons=PIXELMICRONS, framerate=FRAMERATE, cutoff=CUTOFF, tamsd_calcul=False)
+trajectory_image, legend_patch, cmap_for_graph = trajectory_visualization(original_data, analysis_data1, CUTOFF, PIXELMICRONS)
+
 
 
 """
@@ -48,12 +53,13 @@ Data is stored as
 -> ref: https://www.researchgate.net/publication/352833354_Characterising_stochastic_motion_in_heterogeneous_media_driven_by_coloured_non-Gaussian_noise
 -> ref: https://arxiv.org/pdf/1205.2100
 7. states: classified states beforehand with BI-ADD or other tools.
+8. state_changing_duration: list containing the durations of state transitioning trajectories.
 
 Units: 
 log10_K: generalized diffusion coefficient in log10, um^2/s^alpha.
 alpha: anomalous diffusion exponent, real number between 0 and 2.
 mean_jump_disatnce: set of averages of jump distances in um.
-state: states defined in BI-ADD.
+state: states of trajectories, re-ordered from slow to fast.
 duration: duration of trajectory in seconds.
 displacement: displacement(time lag=1) of all trajectories in um.
 """
@@ -61,6 +67,7 @@ print(f'\nanalysis_data1:\n', analysis_data1)
 print(f'\nanalysis_data2:\n', analysis_data2)
 print(f'\nMSD:\n', msd)
 print(f'\nEnsemble-averaged TAMSD:\n', tamsd)
+
 
 
 #p1: histogram with kde(kernel density estimation) plot of mean jump distance grouped by state.
@@ -79,7 +86,7 @@ plt.tight_layout()
 #p2: joint distribution plot of alpha(x-axis) and K(y-axis) for each state
 p2 = sns.jointplot(data=analysis_data1, x=f'alpha', y=f'log10_K', kind='scatter', hue='state', height=12, xlim=(-0.2, 2.2), 
                    joint_kws={'data':analysis_data1, 'size':'duration', 'sizes':(40, 400), 'alpha':0.5})
-p2.set_axis_labels(xlabel=r'$\alpha$', ylabel=r'$log_{10}K(\mu m^2/s^\alpha)$', fontsize=figure_font_size)
+p2.set_axis_labels(xlabel=r'$\alpha$', ylabel=r'$log_{10}K(\mu m^2/sec^\alpha)$', fontsize=figure_font_size)
 p2.figure.suptitle(r'$\alpha$, $K$ distribution for each state')
 p2.ax_joint.set_yticklabels(p2.ax_joint.get_yticks(), fontsize = figure_font_size)
 p2.ax_joint.set_xticklabels(p2.ax_joint.get_xticks(), fontsize = figure_font_size)
@@ -95,13 +102,19 @@ plt.xticks(fontsize=figure_font_size)
 plt.tight_layout()
 
 
-#p4: state transition probability
-plt.figure(f'p4', dpi=figure_resolution_in_dpi)
-p4 = sns.heatmap(state_markov, annot=True)
-p4.set_title(f'state transition probability')
-plt.yticks(fontsize=figure_font_size)
-plt.xticks(fontsize=figure_font_size)
-plt.tight_layout()
+#p4: state transitioning probabilities
+fig, axs = plt.subplots(nrows=2, ncols=len(states))
+duration_bins = np.linspace(0, 2, 100)  # bin range: duration in seconds
+for st, ax in zip(states, axs[0]):
+    for next_st in states:
+        if st != next_st:
+            sns.histplot(state_changing_duration[st][next_st], bins=duration_bins, kde=True, ax=ax)
+            ax.set_title(f'Duration of transitioning trajectory for the states: {st} -> {next_st}')
+            ax.set_xlabel(r'Duration (sec)')
+draw_labeled_multigraph(G=state_graph, attr_names=["count", "freq"], cmap=cmap_for_graph, ax=axs[1, 0])
+axs[1, 1].imshow(trajectory_image)
+axs[1, 1].legend(handles=legend_patch, loc='upper right', borderaxespad=0.)
+fig.tight_layout()
 
 
 #p5: displacement histogram
@@ -197,6 +210,13 @@ for st in analysis_data1['state'].unique():
     state_labels.append(st)
 plt.pie(x=state_population, labels=state_labels, autopct='%.0f%%')
 plt.title('Population of each state')
+plt.tight_layout()
+
+
+#p11: trajectory image with respect to each state.
+plt.figure(f'p11', dpi=figure_resolution_in_dpi)
+plt.imshow(trajectory_image)
+plt.legend(handles=legend_patch, loc='upper right', borderaxespad=0.)
 plt.tight_layout()
 
 
