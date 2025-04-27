@@ -63,7 +63,18 @@ plt.xticks(rotation=90)
 plt.tight_layout()
 
 
-#p2: population of each state per condition
+#p2: displacement histogram
+plt.figure(f'p3', dpi=figure_resolution_in_dpi)
+p2 = sns.histplot(data=analysis_data2, x='displacements', stat='percent', hue='condition', common_norm=False, bins=number_of_bins, kde=True)
+p2.set_title(f'displacement histogram')
+p2.set_xlabel(r'displacment($\mu m$)')
+plt.yticks(fontsize=figure_font_size)
+plt.xticks(fontsize=figure_font_size)
+plt.xticks(rotation=90)
+plt.tight_layout()
+
+
+#p3: population of each state per condition
 state_population = []
 state_per_condition = {}
 for cd in analysis_data1['condition'].unique():
@@ -74,20 +85,9 @@ for cd in analysis_data1['condition'].unique():
 for st, cd in zip(np.array(analysis_data1['state']), np.array(analysis_data1['condition'])):
     state_population.append(state_per_condition[cd][st])
 analysis_data1['state_population'] = state_population
-p2 = sns.catplot(data=analysis_data1, x="condition", y="state_population", hue='state', kind="bar", height=12)
-p2.set_axis_labels(fontsize=figure_font_size)
-p2.figure.suptitle(r'Population of each state per condition')
-plt.tight_layout()
-
-
-#p3: displacement histogram
-plt.figure(f'p3', dpi=figure_resolution_in_dpi)
-p3 = sns.histplot(data=analysis_data2, x='displacements', stat='percent', hue='condition', common_norm=False, bins=number_of_bins, kde=True)
-p3.set_title(f'displacement histogram')
-p3.set_xlabel(r'displacment($\mu m$)')
-plt.yticks(fontsize=figure_font_size)
-plt.xticks(fontsize=figure_font_size)
-plt.xticks(rotation=90)
+p3 = sns.catplot(data=analysis_data1, x="condition", y="state_population", hue='state', kind="bar", height=12)
+p3.set_axis_labels(fontsize=figure_font_size)
+p3.figure.suptitle(r'Population of each state per condition')
 plt.tight_layout()
 
 
@@ -112,6 +112,27 @@ plt.xticks(rotation=90)
 plt.ylim(y_lim_for_percent)
 plt.xlim(x_lim_for_mean_jump_distances)
 plt.tight_layout()
+
+
+#p5: Ensemble-averaged TAMSD
+if tamsd is not None:
+    plt.figure(f'p8', dpi=figure_resolution_in_dpi)
+    p5 = sns.lineplot(data=tamsd, x=tamsd['time'], y=tamsd['mean'], hue='state')
+    p5.set_title(f'Ensemble-averaged TAMSD')
+    p5.set_xlabel(r'lag time($s$)')
+    p5.set_ylabel(r'$\frac{\text{TAMSD}}{\text{2} \cdot \text{dimension}}$ ($\mu m^2$)')
+    plt.yticks(fontsize=figure_font_size)
+    plt.xticks(fontsize=figure_font_size)
+    for state_idx, state in enumerate(states):
+        # lower, upper bound related to the number of data (TODO: testing)
+        tamsd_per_state = tamsd[tamsd['state'] == state].sort_values('time')
+        mus = tamsd_per_state['mean']
+        sigmas = tamsd_per_state['std']
+        lower_bound = [mu - sigma for mu, sigma in zip(mus, sigmas)]
+        upper_bound = [mu + sigma for mu, sigma in zip(mus, sigmas)]
+        #plt.fill_between(tamsd_per_state['time'], lower_bound, upper_bound, alpha=.3, color=f'C{state_idx}')
+    plt.xticks(rotation=90)
+    plt.tight_layout()
 
 
 plt.show()
