@@ -7,17 +7,11 @@ from module.fileIO.DataLoad import read_multiple_csv, read_multiple_h5s
 from scipy.stats import bootstrap
 
 
-"""
-PUBLIC_DATA_PATHS = [f'fus_test/20250219_condensates_IRarea/tight', f'fus_test/20250219_condensates_IRarea/wide', 
-                     f'fus_test/20250219_condensates_nonIRarea/tight_area', f'fus_test/20250219_condensates_nonIRarea/wide_area',
-                     f'fus_test/20250219_noncondensates/condition0', f'fus_test/20250219_noncondensates/condition1',
-                     f'fus_test/20250219_whole']
-"""
 
 """
 Options for the analysis, processing of the data.
 """
-FOLDER = f'fus_test/20250219_condensates_IRarea/tight'  # The folder containing result .h5 files, condition2 contains samples of simulated fBm trajectories transitioning its states.
+FOLDER = f'condition2'  # The folder containing result .h5 files, condition2 contains samples of simulated fBm trajectories transitioning its states.
 PIXELMICRONS = 0.16  # length of pixel in micrometer. (0.16 -> the length of each pixel is 0.16 micrometer, it varies depending on microscopy.)
 FRAMERATE = 0.01  # exposure time of video for each frame in seconds. (0.01 corresponds to the 10ms) 
 CUTOFF = 5   # mininum length of trajectory to consider
