@@ -27,6 +27,7 @@ We concatenate different conditions of Dataframe into one for further analysis.
 """
 analysis_data1 = pd.DataFrame({})
 analysis_data2 = pd.DataFrame({})
+tamsds = pd.DataFrame({})
 state_markovs = []
 state_graphs = []
 for condition in CONDITIONS:
@@ -38,6 +39,11 @@ for condition in CONDITIONS:
     analysis_data2 = pd.concat([analysis_data2, data2], ignore_index=True)
     state_markovs.append(state_markov)
     state_graphs.append(state_graph)
+    if tamsd is not None:
+        tamsd['condition'] = [condition] * len(tamsd)
+        tamsds = pd.concat([tamsds, tamsd], ignore_index=True)
+    else:
+        tamsds = None
     
 
 """
@@ -46,7 +52,7 @@ Data is stored as
 1.analysis_data1: (DataFrame: contains data of mean_jump_distance, log10_K, alpha, state, duration, traj_id, condition)
 2.analysis_data2: (DataFrame: contains data of displacments, state, condition)
 3.state_markovs: (matrix: contains transition probability of conditions)
-4.state_graphs: (network: built from transitions between states(weight: nb of occurence of transitions) of conditions)
+4.state_graphs: (network: built from transitions between states (count: nb of occurence of transitions) of conditions)
 """
 print(f'\nanalysis_data1:\n', analysis_data1)
 print(f'\nanalysis_data2:\n', analysis_data2)
@@ -64,7 +70,7 @@ plt.tight_layout()
 
 
 #p2: displacement histogram
-plt.figure(f'p3', dpi=figure_resolution_in_dpi)
+plt.figure(f'p2', dpi=figure_resolution_in_dpi)
 p2 = sns.histplot(data=analysis_data2, x='displacements', stat='percent', hue='condition', common_norm=False, bins=number_of_bins, kde=True)
 p2.set_title(f'displacement histogram')
 p2.set_xlabel(r'displacment($\mu m$)')
@@ -115,22 +121,15 @@ plt.tight_layout()
 
 
 #p5: Ensemble-averaged TAMSD
-if tamsd is not None:
-    plt.figure(f'p8', dpi=figure_resolution_in_dpi)
-    p5 = sns.lineplot(data=tamsd, x=tamsd['time'], y=tamsd['mean'], hue='state')
+if tamsds is not None:
+    state_to_plot = 1  # number of state to plot for TAMSD
+    plt.figure(f'p5', dpi=figure_resolution_in_dpi)
+    p5 = sns.lineplot(data=tamsds[tamsds['state'] == state_to_plot], x=tamsds['time'], y=tamsds['mean'], hue='condition')
     p5.set_title(f'Ensemble-averaged TAMSD')
     p5.set_xlabel(r'lag time($s$)')
     p5.set_ylabel(r'$\frac{\text{TAMSD}}{\text{2} \cdot \text{dimension}}$ ($\mu m^2$)')
     plt.yticks(fontsize=figure_font_size)
     plt.xticks(fontsize=figure_font_size)
-    for state_idx, state in enumerate(states):
-        # lower, upper bound related to the number of data (TODO: testing)
-        tamsd_per_state = tamsd[tamsd['state'] == state].sort_values('time')
-        mus = tamsd_per_state['mean']
-        sigmas = tamsd_per_state['std']
-        lower_bound = [mu - sigma for mu, sigma in zip(mus, sigmas)]
-        upper_bound = [mu + sigma for mu, sigma in zip(mus, sigmas)]
-        #plt.fill_between(tamsd_per_state['time'], lower_bound, upper_bound, alpha=.3, color=f'C{state_idx}')
     plt.xticks(rotation=90)
     plt.tight_layout()
 
