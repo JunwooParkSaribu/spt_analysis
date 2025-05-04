@@ -2,7 +2,7 @@ import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
 from module.visuailzation import trajectory_visualization, draw_labeled_multigraph
-from module.preprocessing import preprocessing, get_groundtruth_with_label
+from module.preprocessing import preprocessing, get_groundtruth_with_label, count_cumul_trajs_with_roi
 from module.fileIO.DataLoad import read_multiple_csv, read_multiple_h5s
 from scipy.stats import bootstrap
 
@@ -104,7 +104,7 @@ plt.tight_layout()
 
 #p4: state transitioning probabilities
 if len(states) >= 2:  # make plot only when the total number of different states is >= 2.
-    fig, axs = plt.subplots(nrows=2, ncols=len(states))
+    fig, axs = plt.subplots(nrows=2, ncols=len(states), num=f'p4')
     duration_bins = np.linspace(0, 2, 100)  # bin range: duration in seconds
     for st, ax in zip(states, axs[0]):
         for next_st in states:
@@ -219,6 +219,25 @@ plt.tight_layout()
 plt.figure(f'p11', dpi=figure_resolution_in_dpi)
 plt.imshow(trajectory_image)
 plt.legend(handles=legend_patch, loc='upper right', borderaxespad=0.)
+plt.tight_layout()
+
+
+#p12: accumulated number of trajectories in ROI or in the entire video.
+fig, axs = plt.subplots(nrows=2, ncols=1, num=f'p12')
+traj_counts, acc_traj_counts = count_cumul_trajs_with_roi(original_data, roi_file=None, start_frame=1, end_frame=99999)
+x_vlines = []
+x_axis = []
+for idx in range(len(traj_counts)):
+    count = traj_counts[idx]
+    x_axis.append((idx + 1) * FRAMERATE)
+    x_vlines.extend([(idx + 1) * FRAMERATE] * count)
+axs[0].plot(x_axis, acc_traj_counts, c='black')
+axs[1].vlines(x_vlines, 0, 1, colors='black')
+axs[0].set_xlim([0, x_axis[-1] + FRAMERATE])
+axs[1].set_xlim([0, x_axis[-1] + FRAMERATE])
+axs[0].set_ylabel(r'Accumulated counts')
+fig.supxlabel(r'Time (sec)')
+fig.suptitle(r'Number of accumulated trajectories over time')
 plt.tight_layout()
 
 

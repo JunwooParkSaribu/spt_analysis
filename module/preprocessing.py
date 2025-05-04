@@ -4,6 +4,7 @@ import networkx as nx
 from itertools import product, permutations
 from module.fileIO import DataLoad
 from tqdm import tqdm
+import cv2
 
 
 def preprocessing(data, pixelmicrons, framerate, cutoff, tamsd_calcul=True):
@@ -430,3 +431,87 @@ def get_groundtruth_with_label(folder, label_folder, pixelmicrons, framerate, cu
 
     print('** preprocessing finished **')
     return analysis_data1, analysis_data2, state_markov, state_graph, msd, tamsd, total_states
+
+
+def count_cumul_trajs_with_roi(data:pd.DataFrame, roi_file:str|None, start_frame=1, end_frame=999999):
+    from roifile import ImagejRoi
+    """
+    Cropping trajectory result with ROI(region of interest) or frames.
+    It returns a list which contains the number of accumulated trajectories, only considering the first positions and time for each trajectory.
+
+    data: .h5 or equivalent format of trajectory result file.
+    roi_file: region_of_interest.roi which containes the roi information in pixel.
+    start_frame: start frame to crop the trajectory result with frame.
+    end_frame: end frame to crop the trajectory result with frame.
+    """
+
+    assert end_frame > start_frame, "The number of end frame must be greater than start frame."
+
+    if roi_file is None:
+        contours = None
+    elif type(roi_file) is str and len(roi_file) == 0:
+        contours = None
+    else:
+        contours = ImagejRoi.fromfile(roi_file).coordinates().astype(np.int32)
+    
+    cumul=1
+    traj_indices = data['traj_idx'].unique()
+    trajectory_counts = []
+    time_steps = np.array(sorted(list(data['frame'].unique())))
+    end_frame = min(end_frame, time_steps[-1])
+    start_frame = max(start_frame, time_steps[0])
+    time_steps = np.arange(start_frame, end_frame, 1)
+
+
+    coords = {t:[] for t in np.arange(start_frame, end_frame+1)}
+    for traj_idx in traj_indices:
+        single_traj = data[data['traj_idx'] == traj_idx]
+        # considers only the first position.
+        x = single_traj['x'].iloc[0]
+        y = single_traj['y'].iloc[0]
+        t = single_traj['frame'].iloc[0]
+        if t not in coords:
+            coords[t] = [[x, y]]
+        else:
+            coords[t].append([x, y])
+
+
+    for t in time_steps:
+        if t == start_frame:
+            st_tmp = []
+            for stack_t in range(t, t+cumul):
+                time_st = []
+                if stack_t in time_steps:
+                    for stack_coord in coords[stack_t]:
+                        if roi_file is not None:
+                            x, y = stack_coord
+                            masked = cv2.pointPolygonTest(contours, (x, y), False)
+                            if masked == 1:
+                                time_st.append(stack_coord)
+                        else:
+                            time_st.append(stack_coord)
+                st_tmp.append(time_st)
+            traj_count = np.sum([len(x) for x in st_tmp])
+            trajectory_counts.append(traj_count)
+            prev_tmps=st_tmp
+        else:
+            stack_t = t+cumul-1
+            time_st = []
+            if stack_t in time_steps:
+                for stack_coord in coords[stack_t]:
+
+                    if roi_file is not None:
+                        x, y = stack_coord
+                        masked = cv2.pointPolygonTest(contours, (x, y), False)
+                        if masked == 1:
+                            time_st.append(stack_coord)
+                    else:
+                        time_st.append(stack_coord)
+
+            st_tmp = prev_tmps[1:]
+            st_tmp.append(time_st)
+            traj_count = np.sum([len(x) for x in st_tmp])
+            trajectory_counts.append(traj_count)
+            prev_tmps = st_tmp
+
+    return trajectory_counts, np.cumsum(trajectory_counts)
