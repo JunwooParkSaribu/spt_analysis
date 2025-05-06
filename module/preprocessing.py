@@ -433,7 +433,7 @@ def get_groundtruth_with_label(folder, label_folder, pixelmicrons, framerate, cu
     return analysis_data1, analysis_data2, state_markov, state_graph, msd, tamsd, total_states
 
 
-def count_cumul_trajs_with_roi(data:pd.DataFrame|str, roi_file:str|None, start_frame=1, end_frame=500):
+def count_cumul_trajs_with_roi(data:pd.DataFrame|str, roi_file:str|None, start_frame=1, end_frame=100):
     from roifile import ImagejRoi
     """
     Cropping trajectory result with ROI(region of interest) or frames.
@@ -444,7 +444,7 @@ def count_cumul_trajs_with_roi(data:pd.DataFrame|str, roi_file:str|None, start_f
     start_frame: start frame to crop the trajectory result with frame.
     end_frame: end frame to crop the trajectory result with frame.
     """
-
+    assert "_traces.csv" in data or type(data) is pd.DataFrame or ".h5" in data, "The input filename should be .h5 or traces.csv which are the results of FreeTrace or BI-ADD or equilvalent format."
     assert end_frame > start_frame, "The number of end frame must be greater than start frame."
 
     if roi_file is None:
