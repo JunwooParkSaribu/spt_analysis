@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import networkx as nx
 from itertools import product, permutations
-from module.fileIO import DataLoad
+from module.fileIO import DataLoad, DataSave
 from tqdm import tqdm
 import cv2
 
@@ -433,7 +433,7 @@ def get_groundtruth_with_label(folder, label_folder, pixelmicrons, framerate, cu
     return analysis_data1, analysis_data2, state_markov, state_graph, msd, tamsd, total_states
 
 
-def count_cumul_trajs_with_roi(data:pd.DataFrame, roi_file:str|None, start_frame=1, end_frame=999999):
+def count_cumul_trajs_with_roi(data:pd.DataFrame|str, roi_file:str|None, start_frame=1, end_frame=500):
     from roifile import ImagejRoi
     """
     Cropping trajectory result with ROI(region of interest) or frames.
@@ -454,27 +454,51 @@ def count_cumul_trajs_with_roi(data:pd.DataFrame, roi_file:str|None, start_frame
     else:
         contours = ImagejRoi.fromfile(roi_file).coordinates().astype(np.int32)
     
-    cumul=1
-    traj_indices = data['traj_idx'].unique()
     trajectory_counts = []
-    time_steps = np.array(sorted(list(data['frame'].unique())))
-    end_frame = min(end_frame, time_steps[-1])
-    start_frame = max(start_frame, time_steps[0])
-    time_steps = np.arange(start_frame, end_frame, 1)
-
-
+    cumul=1
     coords = {t:[] for t in np.arange(start_frame, end_frame+1)}
-    for traj_idx in traj_indices:
-        single_traj = data[data['traj_idx'] == traj_idx]
-        # considers only the first position.
-        x = single_traj['x'].iloc[0]
-        y = single_traj['y'].iloc[0]
-        t = single_traj['frame'].iloc[0]
-        if t not in coords:
-            coords[t] = [[x, y]]
-        else:
-            coords[t].append([x, y])
+    time_steps = np.arange(start_frame, end_frame, 1)
+    observed_max_t = -1
+    observed_min_t = 99999999
 
+    if type(data) is str and '.h5' in data:
+        data = DataLoad.read_multiple_h5s(path=data)
+        traj_indices = data['traj_idx'].unique()
+        for traj_idx in traj_indices:
+            single_traj = data[data['traj_idx'] == traj_idx]
+            # considers only the first position.
+            x = single_traj['x'].iloc[0]
+            y = single_traj['y'].iloc[0]
+            t = single_traj['frame'].iloc[0]
+            if t in coords:
+                coords[t].append([x, y])
+            observed_max_t = max(t, observed_max_t)
+            observed_min_t = min(t, observed_min_t)
+
+    elif type(data) is str and '_traces.csv' in data:
+        trajectory_list = DataLoad.read_trajectory(data)
+        for trajectory in trajectory_list:
+            xyz = trajectory.get_positions()
+            x = xyz[:, 0][0]
+            y = xyz[:, 1][0]
+            t = int(trajectory.get_times()[0])
+            if t in coords:
+                coords[t].append([x, y])
+            observed_max_t = max(t, observed_max_t)
+            observed_min_t = min(t, observed_min_t)
+    else:
+        traj_indices = data['traj_idx'].unique()
+        for traj_idx in traj_indices:
+            single_traj = data[data['traj_idx'] == traj_idx]
+            # considers only the first position.
+            x = single_traj['x'].iloc[0]
+            y = single_traj['y'].iloc[0]
+            t = single_traj['frame'].iloc[0]
+            if t in coords:
+                coords[t].append([x, y])
+            observed_max_t = max(t, observed_max_t)
+            observed_min_t = min(t, observed_min_t)
+                
 
     for t in time_steps:
         if t == start_frame:
@@ -515,3 +539,67 @@ def count_cumul_trajs_with_roi(data:pd.DataFrame, roi_file:str|None, start_frame
             prev_tmps = st_tmp
 
     return trajectory_counts, np.cumsum(trajectory_counts)
+
+
+def crop_trace_roi_and_frame(trace_file:str, roi_file:str|None, start_frame:0, end_frame:9999999, option=0, crop_comparison=False):
+    """
+    Cropping trajectory result with ROI(region of interest) or frames.
+    trace_file: video_traces.csv or equivalent format of trajectory result file.
+    roi_file: region_of_interest.roi which containes the roi information in pixel.
+    start_frame: start frame to crop the trajectory result with frame.
+    end_frame: end frame to crop the trajectory result with frame.
+    option: 0 -> considers the trajectories stay only inside the ROI. 1 -> incldues all the trajectories passing trough the ROI.
+    crop_comparison: boolean to visualize cropped result.
+    """
+
+    assert "traces.csv" in trace_file, "Wrong trajectory file format, result_traces.csv is needed to crop with ROI or frames"
+    assert end_frame > start_frame, "The number of end frame must be greater than start frame."
+    assert option == 0 or option == 1, "The option must be 0 or 1. 0: consider the trajectories stay only inside the ROI. 1: incldues all the trajectories passed the ROI."
+
+    if roi_file is None:
+        contours = None
+    elif type(roi_file) is str and len(roi_file) == 0:
+        contours = None
+    else:
+        from roifile import ImagejRoi
+        contours = ImagejRoi.fromfile(roi_file).coordinates().astype(np.int32)
+
+    filtered_trajectory_list = []
+    trajectory_list = DataLoad.read_trajectory(trace_file)
+    start_frame = max(start_frame, 0)
+    end_frame = min(end_frame, 9999999)
+
+    for trajectory in trajectory_list:
+        skip = 0
+        xyz = trajectory.get_positions()
+        times = trajectory.get_times()
+        xs = xyz[:, 0]
+        ys = xyz[:, 1]
+        zs = xyz[:, 2]
+
+        if option == 0:
+            if contours is not None:
+                for x, y in zip(xs, ys):
+                    masked = cv2.pointPolygonTest(contours, (x, y), False)
+                    if masked == -1:
+                        skip = 1
+                        break
+                
+                if skip == 1:
+                    continue
+
+            if times[0] >= start_frame and times[-1] <= end_frame:
+                filtered_trajectory_list.append(trajectory)
+        else:
+            if contours is not None:
+                for x, y in zip(xs, ys):
+                    masked = cv2.pointPolygonTest(contours, (x, y), False)
+                    if masked == 1:
+                        if times[0] >= start_frame and times[-1] <= end_frame:
+                            filtered_trajectory_list.append(trajectory)
+                        break
+
+    print(f'cropping info: ROI[{roi_file}],  Frame:[{start_frame}, {end_frame}]')
+    print(f'Number of trajectories before filtering:{len(trajectory_list)}, after filtering:{len(filtered_trajectory_list)}')
+    DataSave.write_trajectory(f'{".".join(trace_file.split("traces.csv")[:-1])}cropped_{start_frame}_{end_frame}_traces.csv', filtered_trajectory_list)
+    print(f'{".".join(trace_file.split("traces.csv")[:-1])}cropped_{start_frame}_{end_frame}_traces.csv is successfully generated.')

@@ -222,9 +222,11 @@ plt.legend(handles=legend_patch, loc='upper right', borderaxespad=0.)
 plt.tight_layout()
 
 
-#p12: accumulated number of trajectories in ROI or in the entire video.
+#p12: accumulated number of trajectories in ROI or in the entire video. If you have ROI file, please fill the roi_file parameter.
+start_frmae = 1  # number of start frame to accumulate the observed trajectories
+end_frame = 100  # number of end frame.
 fig, axs = plt.subplots(nrows=2, ncols=1, num=f'p12')
-traj_counts, acc_traj_counts = count_cumul_trajs_with_roi(original_data, roi_file=None, start_frame=1, end_frame=99999)
+traj_counts, acc_traj_counts = count_cumul_trajs_with_roi(original_data, roi_file=None, start_frame=start_frmae, end_frame=end_frame)
 x_vlines = []
 x_axis = []
 for idx in range(len(traj_counts)):
@@ -237,7 +239,7 @@ axs[0].set_xlim([0, x_axis[-1] + FRAMERATE])
 axs[1].set_xlim([0, x_axis[-1] + FRAMERATE])
 axs[0].set_ylabel(r'Accumulated counts')
 fig.supxlabel(r'Time (sec)')
-fig.suptitle(r'Number of accumulated trajectories over time')
+fig.suptitle(f'Number of accumulated trajectories from {round(start_frmae/FRAMERATE,2)} to {round(end_frame/FRAMERATE,2)} sec.')
 plt.tight_layout()
 
 
