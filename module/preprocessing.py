@@ -433,7 +433,7 @@ def get_groundtruth_with_label(folder, label_folder, pixelmicrons, framerate, cu
     return analysis_data1, analysis_data2, state_markov, state_graph, msd, tamsd, total_states
 
 
-def count_cumul_trajs_with_roi(data:pd.DataFrame|str, roi_file:str|None, start_frame=1, end_frame=100):
+def count_cumul_trajs_with_roi(data:pd.DataFrame|str, roi_file:str|None, start_frame=1, end_frame=100, cutoff=5):
     from roifile import ImagejRoi
     """
     Cropping trajectory result with ROI(region of interest) or frames.
@@ -470,7 +470,7 @@ def count_cumul_trajs_with_roi(data:pd.DataFrame|str, roi_file:str|None, start_f
             x = single_traj['x'].iloc[0]
             y = single_traj['y'].iloc[0]
             t = single_traj['frame'].iloc[0]
-            if t in coords:
+            if t in coords and len(single_traj) >= cutoff:
                 coords[t].append([x, y])
             observed_max_t = max(t, observed_max_t)
             observed_min_t = min(t, observed_min_t)
@@ -482,7 +482,7 @@ def count_cumul_trajs_with_roi(data:pd.DataFrame|str, roi_file:str|None, start_f
             x = xyz[:, 0][0]
             y = xyz[:, 1][0]
             t = int(trajectory.get_times()[0])
-            if t in coords:
+            if t in coords and len(xyz) >= cutoff:
                 coords[t].append([x, y])
             observed_max_t = max(t, observed_max_t)
             observed_min_t = min(t, observed_min_t)
@@ -494,7 +494,7 @@ def count_cumul_trajs_with_roi(data:pd.DataFrame|str, roi_file:str|None, start_f
             x = single_traj['x'].iloc[0]
             y = single_traj['y'].iloc[0]
             t = single_traj['frame'].iloc[0]
-            if t in coords:
+            if t in coords and len(single_traj) >= cutoff:
                 coords[t].append([x, y])
             observed_max_t = max(t, observed_max_t)
             observed_min_t = min(t, observed_min_t)
