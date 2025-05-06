@@ -34,13 +34,16 @@ def read_csv(file):
     return csv_data
 
 
-def read_multiple_h5s(path):
+def read_multiple_h5s(path:str):
     dfs = []
     meta_info = []
     files_not_same_conditions = []
     prefix = f'_biadd'
 
-    f_list = glob.glob(f'{path}/*{prefix}.h5')
+    if path.split('.')[-1] == 'h5':
+        f_list = [path]
+    else:
+        f_list = glob.glob(f'{path}/*{prefix}.h5')
     for f_idx, file in enumerate(f_list):
         try:
             df, meta = read_h5(file)
