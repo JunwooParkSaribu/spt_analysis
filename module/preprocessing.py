@@ -41,7 +41,7 @@ def preprocessing(data, pixelmicrons, framerate, cutoff, tamsd_calcul=True):
     if len(total_states) > 1:
         state_changing_duration = {tuple(state): [] for state in product_states}
     else:
-        state_changing_duration = {tuple(total_states[0], total_states[0]):[]}
+        state_changing_duration = {tuple([total_states[0], total_states[0]]):[]}
 
     state_markov = [[0 for _ in range(len(total_states))] for _ in range(len(total_states))]
     analysis_data1 = {}
