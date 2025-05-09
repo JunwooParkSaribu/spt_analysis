@@ -76,7 +76,8 @@ def preprocessing(data, pixelmicrons, framerate, cutoff, tamsd_calcul=True):
         print("** Computing of Ensemble-averaged TAMSD takes a few minutes **")
     for traj_idx in tqdm(traj_indices, ncols=120, desc=f'Analysis', unit=f'trajectory'):
         single_traj = data.loc[data['traj_idx'] == traj_idx].copy()
-        
+        single_traj = single_traj.sort_values(by=['frame'])
+
         # calculate state changes inside single trajectory
         #before_st = single_traj.state.iloc[0]
         #for st in single_traj.state:
