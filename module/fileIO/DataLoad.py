@@ -18,14 +18,7 @@ def read_csv(file):
     csv_data = pd.read_csv(file)
     col_names = ['traj_idx', 'frame', 'x', 'y', 'z', 'state', 'K', 'alpha']
     z = np.zeros(len(csv_data.iloc[:, 1]))
-    if 'Bound' in file:
-        state = np.zeros(len(csv_data.iloc[:, 1]), dtype=np.int32)
-    elif 'Hybrid' in file:
-        state = np.zeros(len(csv_data.iloc[:, 1]), dtype=np.int32) + 1
-    elif 'Mobile' in file:
-        state = np.zeros(len(csv_data.iloc[:, 1]), dtype=np.int32) + 2
-    else:
-        state = np.zeros(len(csv_data.iloc[:, 1]), dtype=np.int32) + 3
+    state = np.zeros(len(csv_data.iloc[:, 1]), dtype=np.int32)
     K = np.zeros(len(csv_data.iloc[:, 1]))
     alpha = np.zeros(len(csv_data.iloc[:, 1]))
     csv_data = csv_data.assign(z = z)
