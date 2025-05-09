@@ -105,7 +105,7 @@ plt.tight_layout()
 
 #p4: state transitioning probabilities
 if len(states) >= 2:  # make plot only when the total number of different states is >= 2.
-    print("Making figures... please wait, it takes time if the number of trajectories is big.")
+    print("\n** Making figures... please wait, it takes time if the number of trajectories is big. **\n")
     fig, axs = plt.subplots(nrows=2, ncols=len(states), num=f'p4')
     duration_bins = np.linspace(0, 2, 100)  # bin range: duration in seconds
     for st, ax in zip(states, axs[0]):
