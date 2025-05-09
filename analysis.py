@@ -37,7 +37,7 @@ If you want to calculate tamsd, set it as True. It is off in default since tamsd
 """
 original_data = read_multiple_h5s(path=FOLDER)
 analysis_data1, analysis_data2, state_markov, state_graph, msd, tamsd, states, state_changing_duration = preprocessing(data=original_data, pixelmicrons=PIXELMICRONS, framerate=FRAMERATE, cutoff=CUTOFF, tamsd_calcul=False)
-trajectory_image, legend_patch, cmap_for_graph, cmap_for_plot = trajectory_visualization(original_data, analysis_data1, CUTOFF, PIXELMICRONS)
+trajectory_image, legend_patch, cmap_for_graph, cmap_for_plot = trajectory_visualization(original_data, analysis_data1, CUTOFF, PIXELMICRONS, resolution_multiplier=20)
 
 
 
@@ -83,6 +83,7 @@ plt.xlim(x_lim_for_mean_jump_distances)
 plt.tight_layout()
 
 
+
 #p2: joint distribution plot of alpha(x-axis) and K(y-axis) for each state
 p2 = sns.jointplot(data=analysis_data1, x=f'alpha', y=f'log10_K', kind='scatter', hue='state', palette=cmap_for_plot, height=12, xlim=(-0.2, 2.2), 
                    joint_kws={'data':analysis_data1, 'size':'duration', 'sizes':(40, 400), 'alpha':0.5})
@@ -109,9 +110,10 @@ if len(states) >= 2:  # make plot only when the total number of different states
     for st, ax in zip(states, axs[0]):
         for next_st in states:
             if st != next_st:
-                sns.histplot(state_changing_duration[st][next_st], bins=duration_bins, kde=True, ax=ax)
-                ax.set_title(f'Duration of transitioning trajectory for the states: {st} -> {next_st}')
+                sns.histplot(state_changing_duration[tuple([st, next_st])], bins=duration_bins, kde=True, ax=ax, label=f'{st} -> {next_st}')
+                ax.set_title(f'Duration of transitioning trajectories for the state: {st}')
                 ax.set_xlabel(r'Duration (sec)')
+                ax.legend()
     draw_labeled_multigraph(G=state_graph, attr_names=["count", "freq"], cmap=cmap_for_graph, ax=axs[1, 0])
     axs[1, 1].imshow(trajectory_image)
     axs[1, 1].legend(handles=legend_patch, loc='upper right', borderaxespad=0.)
@@ -223,10 +225,10 @@ plt.tight_layout()
 
 
 #p12: accumulated number of trajectories in ROI or in the entire video. If you have ROI file, please fill the roi_file parameter.
-start_frmae = 1  # number of start frame to accumulate the observed trajectories
+start_frame = 1  # number of start frame to accumulate the observed trajectories
 end_frame = 100  # number of end frame.
 fig, axs = plt.subplots(nrows=2, ncols=1, num=f'p12')
-traj_counts, acc_traj_counts = count_cumul_trajs_with_roi(original_data, roi_file=None, start_frame=start_frmae, end_frame=end_frame)
+traj_counts, acc_traj_counts = count_cumul_trajs_with_roi(original_data, roi_file=None, start_frame=start_frame, end_frame=end_frame, cutoff=CUTOFF)
 x_vlines = []
 x_axis = []
 for idx in range(len(traj_counts)):
@@ -239,7 +241,7 @@ axs[0].set_xlim([0, x_axis[-1] + FRAMERATE])
 axs[1].set_xlim([0, x_axis[-1] + FRAMERATE])
 axs[0].set_ylabel(r'Accumulated counts')
 fig.supxlabel(r'Time (sec)')
-fig.suptitle(f'Number of accumulated trajectories from {round(start_frmae/FRAMERATE,2)} to {round(end_frame/FRAMERATE,2)} sec.')
+fig.suptitle(f'Number of accumulated trajectories from {round(start_frame*FRAMERATE,2)} to {round(end_frame*FRAMERATE,2)} sec.')
 plt.tight_layout()
 
 

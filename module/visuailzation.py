@@ -5,6 +5,7 @@ import numpy as np
 import cv2
 import matplotlib.colors as mcolors
 import matplotlib.patches as mpatches
+from tqdm import tqdm
 
 
 def trajectory_visualization_old(output_path:str, data:pd.DataFrame, cutoff:int):
@@ -35,8 +36,9 @@ def trajectory_visualization_old(output_path:str, data:pd.DataFrame, cutoff:int)
     cv2.imwrite(f'{output_path}/visualization.png', image)
 
 
-def trajectory_visualization(original_data:pd.DataFrame, analysis_data1:pd.DataFrame, cutoff:int, pixelmicron:float) -> np.ndarray:
-    scale = 20
+def trajectory_visualization(original_data:pd.DataFrame, analysis_data1:pd.DataFrame, cutoff:int, pixelmicron:float, resolution_multiplier=20) -> np.ndarray:
+    print("** visualizing trajectories... **")
+    scale = resolution_multiplier
     thickness = 1
     color_maps = {}
     color_maps_plot = {}
@@ -48,7 +50,8 @@ def trajectory_visualization(original_data:pd.DataFrame, analysis_data1:pd.DataF
     x_width = int(((max_x - min_x) * scale))
     y_width = int(((max_y - min_y) * scale))
     image = np.ones((y_width, x_width, 3)).astype(np.uint8)
-    for traj_idx in original_data['traj_idx'].unique():
+
+    for traj_idx in tqdm(original_data['traj_idx'].unique(), ncols=120, desc=f'Visualization', unit='trajectory'):
         single_traj = original_data[original_data['traj_idx'] == traj_idx]
         corresponding_ids = analysis_data1['traj_id'] == single_traj['traj_idx'].iloc[0]
         if np.sum(corresponding_ids) > 0:

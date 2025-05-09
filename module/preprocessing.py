@@ -37,10 +37,12 @@ def preprocessing(data, pixelmicrons, framerate, cutoff, tamsd_calcul=True):
     state_graph = nx.DiGraph()
     state_graph.add_nodes_from(total_states)
     state_graph.add_edges_from(product_states, count=0, freq=0)
+    
     if len(total_states) > 1:
-        state_changing_duration = {state[0]:{state[1]:[]} for state in list(permutations(total_states))}
+        state_changing_duration = {tuple(state): [] for state in product_states}
     else:
-        state_changing_duration = {total_states[0]:{total_states[0]:[]}}
+        state_changing_duration = {tuple(total_states[0], total_states[0]):[]}
+
     state_markov = [[0 for _ in range(len(total_states))] for _ in range(len(total_states))]
     analysis_data1 = {}
     analysis_data1[f'mean_jump_d'] = []
@@ -115,7 +117,7 @@ def preprocessing(data, pixelmicrons, framerate, cutoff, tamsd_calcul=True):
                 else:
                     if i >= 1:
                         state_graph[prev_state][state]['count'] += 1
-                        state_changing_duration[prev_state][state].append(prev_duration)
+                        state_changing_duration[tuple([prev_state, state])].append(prev_duration)
                     if i == len(chunk_idx) - 2:  # last state of chunked trjectory which is considered as non-state changing stae.
                         state_graph[state][state]['count'] += 1 
                 prev_state = state
@@ -446,6 +448,7 @@ def count_cumul_trajs_with_roi(data:pd.DataFrame|str, roi_file:str|None, start_f
     """
     assert "_traces.csv" in data or type(data) is pd.DataFrame or ".h5" in data, "The input filename should be .h5 or traces.csv which are the results of FreeTrace or BI-ADD or equilvalent format."
     assert end_frame > start_frame, "The number of end frame must be greater than start frame."
+    
 
     if roi_file is None:
         contours = None
@@ -500,7 +503,7 @@ def count_cumul_trajs_with_roi(data:pd.DataFrame|str, roi_file:str|None, start_f
             observed_min_t = min(t, observed_min_t)
                 
 
-    for t in time_steps:
+    for t in tqdm(time_steps, ncols=120, desc=f'Accumulation', unit=f'frame'):
         if t == start_frame:
             st_tmp = []
             for stack_t in range(t, t+cumul):
