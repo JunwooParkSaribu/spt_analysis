@@ -73,19 +73,23 @@ def read_multiple_csv(path):
     f_list = glob.glob(f'{path}/*.csv')
     for f_idx, file in enumerate(f_list):
         df = read_csv(file)
-        if f_idx != 0:
-            pure_f_name = file.split('/')[-1].split(f'.csv')[0]
-            df['filename'] = [pure_f_name] * len(df['traj_idx'])
-            traj_indices = df['traj_idx']
-            traj_indices = [f'{pure_f_name}_{idx}' for idx in traj_indices]
-            df['traj_idx'] = traj_indices
+        if 'traj_idx' in df:
+            if f_idx != 0:
+                pure_f_name = file.split('/')[-1].split(f'.csv')[0]
+                df['filename'] = [pure_f_name] * len(df['traj_idx'])
+                traj_indices = df['traj_idx']
+                traj_indices = [f'{pure_f_name}_{idx}' for idx in traj_indices]
+                df['traj_idx'] = traj_indices
+            else:
+                pure_f_name = file.split('/')[-1].split(f'.csv')[0]
+                df['filename'] = [pure_f_name] * len(df['traj_idx'])
+                traj_indices = df['traj_idx']
+                traj_indices = [f'{pure_f_name}_{idx}' for idx in traj_indices]
+                df['traj_idx'] = traj_indices
+            dfs.append(df)
         else:
-            pure_f_name = file.split('/')[-1].split(f'.csv')[0]
-            df['filename'] = [pure_f_name] * len(df['traj_idx'])
-            traj_indices = df['traj_idx']
-            traj_indices = [f'{pure_f_name}_{idx}' for idx in traj_indices]
-            df['traj_idx'] = traj_indices
-        dfs.append(df)
+            print(f'** Couldn\'t find \'traj_idx\' column in the {file} -> skipped. **')
+    print('')
     grouped_df = pd.concat(dfs) 
     return grouped_df
 
