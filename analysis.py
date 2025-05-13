@@ -2,7 +2,7 @@ import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
 from module.visuailzation import trajectory_visualization, draw_labeled_multigraph
-from module.preprocessing import preprocessing, get_groundtruth_with_label, count_cumul_trajs_with_roi
+from module.preprocessing import preprocessing, count_cumul_trajs_with_roi, diffusion_coefficient
 from module.fileIO.DataLoad import read_multiple_csv, read_multiple_h5s
 from scipy.stats import bootstrap
 
@@ -19,7 +19,7 @@ number_of_bins = 50   # below are the general settings of result plots, you can 
 bootstrap_bins = 300
 figure_resolution_in_dpi = 200
 figure_font_size = 20
-y_lim_for_percent = [0, 20]
+y_lim_for_percent = [0, 35]
 x_lim_for_mean_jump_distances = [0, 0.5]
 
 
@@ -213,7 +213,7 @@ state_labels = []
 for st in analysis_data1['state'].unique():
     state_population.append(len(analysis_data1[analysis_data1['state'] == st]))
     state_labels.append(st)
-plt.pie(x=state_population, labels=state_labels, autopct='%.0f%%')
+plt.pie(x=state_population, labels=[f'Nb of state {state_labels[st]}: {state_population[st]}' for st in state_labels], autopct='%.0f%%')
 plt.title('Population of each state')
 plt.tight_layout()
 

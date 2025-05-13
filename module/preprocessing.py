@@ -134,17 +134,34 @@ def preprocessing(data, pixelmicrons, framerate, cutoff, tamsd_calcul=True):
                 jump_distances = (np.sqrt(((sub_trajectory.x.iloc[1:].to_numpy() - sub_trajectory.x.iloc[:-1].to_numpy()) ** 2) / (sub_trajectory.frame.iloc[1:].to_numpy() - sub_trajectory.frame.iloc[:-1].to_numpy())
                                          + ((sub_trajectory.y.iloc[1:].to_numpy() - sub_trajectory.y.iloc[:-1].to_numpy()) ** 2) / (sub_trajectory.frame.iloc[1:].to_numpy() - sub_trajectory.frame.iloc[:-1].to_numpy()))) 
 
+
                 # MSD
-                msd_ragged_ens_trajs[state].append(((sub_trajectory.x.to_numpy())**2 + (sub_trajectory.y.to_numpy())**2) / dim / 2)
+                copy_frames = sub_trajectory.frame.to_numpy()
+                copy_frames = copy_frames - copy_frames[0]
+                tmp_msd = []
+                for frame, sq_disp in zip(np.arange(0, copy_frames[-1], 1), ((sub_trajectory.x.to_numpy())**2 + (sub_trajectory.y.to_numpy())**2) / dim / 2):
+                    if frame in copy_frames:
+                        tmp_msd.append(sq_disp)
+                    else:
+                        tmp_msd.append(None)
+                msd_ragged_ens_trajs[state].append(tmp_msd)
+
 
                 # TAMSD
                 if tamsd_calcul:
                     tamsd_tmp = []
                     for lag in range(len(sub_trajectory)):
-                        time_averaged = []
-                        for pivot in range(len(sub_trajectory) - lag):
-                            time_averaged.append(((sub_trajectory.x.iloc[pivot + lag] - sub_trajectory.x.iloc[pivot]) ** 2 + (sub_trajectory.y.iloc[pivot + lag] - sub_trajectory.y.iloc[pivot]) ** 2) / dim / 2)
-                        tamsd_tmp.append(np.mean(time_averaged))
+                        if lag == 0:
+                            tamsd_tmp.append(0)
+                        else:
+                            time_averaged = []
+                            for pivot in range(len(sub_trajectory) - lag):
+                                if lag == sub_trajectory.frame.iloc[pivot + lag] - sub_trajectory.frame.iloc[pivot]:
+                                    time_averaged.append(((sub_trajectory.x.iloc[pivot + lag] - sub_trajectory.x.iloc[pivot]) ** 2 + (sub_trajectory.y.iloc[pivot + lag] - sub_trajectory.y.iloc[pivot]) ** 2) / dim / 2)
+                            if len(time_averaged) > 0:
+                                tamsd_tmp.append(np.mean(time_averaged))
+                            else:
+                                tamsd_tmp.append(None)
                 else:
                     tamsd_tmp = [0] * len(sub_trajectory)
                 tamsd_ragged_ens_trajs[state].append(tamsd_tmp)
@@ -181,11 +198,11 @@ def preprocessing(data, pixelmicrons, framerate, cutoff, tamsd_calcul=True):
             msd_row_data = []
             tamsd_row_data = []
             for row in range(len(msd_ragged_ens_trajs[state_key])):
-                if t < len(msd_ragged_ens_trajs[state_key][row]):
+                if t < len(msd_ragged_ens_trajs[state_key][row]) and msd_ragged_ens_trajs[state_key][row][t] is not None:
                     msd_row_data.append(msd_ragged_ens_trajs[state_key][row][t])
                     msd_nb_ += 1
             for row in range(len(tamsd_ragged_ens_trajs[state_key])):
-                if t < len(tamsd_ragged_ens_trajs[state_key][row]):
+                if t < len(tamsd_ragged_ens_trajs[state_key][row]) and tamsd_ragged_ens_trajs[state_key][row][t] is not None:
                     tamsd_row_data.append(tamsd_ragged_ens_trajs[state_key][row][t])
                     tamsd_nb_ += 1
             msd_mean.append(np.mean(msd_row_data))
@@ -607,3 +624,37 @@ def crop_trace_roi_and_frame(trace_file:str, roi_file:str|None, start_frame:0, e
     print(f'Number of trajectories before filtering:{len(trajectory_list)}, after filtering:{len(filtered_trajectory_list)}')
     DataSave.write_trajectory(f'{".".join(trace_file.split("traces.csv")[:-1])}cropped_{start_frame}_{end_frame}_traces.csv', filtered_trajectory_list)
     print(f'{".".join(trace_file.split("traces.csv")[:-1])}cropped_{start_frame}_{end_frame}_traces.csv is successfully generated.')
+
+
+def linear_fit(msd:pd.DataFrame, timepoints:dict, states:list):
+    assert len(timepoints) == len(states), "The number of timepoints and states should be same."
+    slopes = {state:[None, None] for state in states}
+    for state in states:
+        timepoint = timepoints[state]
+        times = msd[msd['state']==state]['time'].to_numpy()
+        means = msd[msd['state']==state]['mean'].to_numpy()
+        selected_times = times[times <= timepoint]
+        selected_means = means[times <= timepoint]
+        slope, b = np.polyfit(selected_times, selected_means, 1)
+        slopes[state] = [slope, b]
+    return slopes
+
+
+def diffusion_coefficient(msd:pd.DataFrame, timepoints:dict, states:list):
+    assert len(timepoints) == len(states), "The number of timepoints and states should be same."
+    diff_coef_state = {state:None for state in states}
+    for state in states:
+        timepoint = timepoints[state]
+        diff_coef = []
+        times = msd[msd['state']==state]['time'].to_numpy()
+        means = msd[msd['state']==state]['mean'].to_numpy()
+        selected_times = times[times <= timepoint]
+        selected_means = means[times <= timepoint]
+        for lag in range(1, len(selected_means)):
+            time_lag = selected_times[lag]
+            diff_coef_lag = []
+            for pivot in range(0, len(selected_means) - lag):
+                diff_coef_lag.append(abs(selected_means[lag+pivot] - selected_means[pivot]))
+            diff_coef.append(np.mean(diff_coef_lag) / time_lag)
+        diff_coef_state[state] = np.round(np.mean(diff_coef), 4)
+    return diff_coef_state
