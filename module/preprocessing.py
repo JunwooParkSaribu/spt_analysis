@@ -562,68 +562,47 @@ def count_cumul_trajs_with_roi(data:pd.DataFrame|str, roi_file:str|None, start_f
     return trajectory_counts, np.cumsum(trajectory_counts)
 
 
-def crop_trace_roi_and_frame(trace_file:str, roi_file:str|None, start_frame:0, end_frame:9999999, option=0, crop_comparison=False):
-    """
-    Cropping trajectory result with ROI(region of interest) or frames.
-    trace_file: video_traces.csv or equivalent format of trajectory result file.
-    roi_file: region_of_interest.roi which containes the roi information in pixel.
-    start_frame: start frame to crop the trajectory result with frame.
-    end_frame: end frame to crop the trajectory result with frame.
-    option: 0 -> considers the trajectories stay only inside the ROI. 1 -> incldues all the trajectories passing trough the ROI.
-    crop_comparison: boolean to visualize cropped result.
-    """
+def check_roi_passing_traces(h5_file:str, roi_file:str|None):
+    assert ".h5" in h5_file, "Wrong trajectory file format, .h5 extendsion is needed."
+    assert roi_file is not None, "This needs ROI file."
 
-    assert "traces.csv" in trace_file, "Wrong trajectory file format, result_traces.csv is needed to crop with ROI or frames"
-    assert end_frame > start_frame, "The number of end frame must be greater than start frame."
-    assert option == 0 or option == 1, "The option must be 0 or 1. 0: consider the trajectories stay only inside the ROI. 1: incldues all the trajectories passed the ROI."
+    from roifile import ImagejRoi
+    contours = ImagejRoi.fromfile(roi_file).coordinates().astype(np.int32)
 
-    if roi_file is None:
-        contours = None
-    elif type(roi_file) is str and len(roi_file) == 0:
-        contours = None
-    else:
-        from roifile import ImagejRoi
-        contours = ImagejRoi.fromfile(roi_file).coordinates().astype(np.int32)
+    stay_inside_trajectories = []
+    out_to_in_trajectories = []
+    in_to_out_trajectories = []
+    complex_trajectories = []
+    df = DataLoad.read_h5(h5_file)[0]
+    traj_indices = df['traj_idx'].unique()
 
-    filtered_trajectory_list = []
-    trajectory_list = DataLoad.read_trajectory(trace_file)
-    start_frame = max(start_frame, 0)
-    end_frame = min(end_frame, 9999999)
+    for traj_idx in traj_indices:
+        single_traj = df[df['traj_idx'] == traj_idx]
+        xs = single_traj['x'].to_numpy()
+        ys = single_traj['y'].to_numpy()
+        masks = []
 
-    for trajectory in trajectory_list:
-        skip = 0
-        xyz = trajectory.get_positions()
-        times = trajectory.get_times()
-        xs = xyz[:, 0]
-        ys = xyz[:, 1]
-        zs = xyz[:, 2]
-
-        if option == 0:
-            if contours is not None:
-                for x, y in zip(xs, ys):
-                    masked = cv2.pointPolygonTest(contours, (x, y), False)
-                    if masked == -1:
-                        skip = 1
-                        break
-                
-                if skip == 1:
-                    continue
-
-            if times[0] >= start_frame and times[-1] <= end_frame:
-                filtered_trajectory_list.append(trajectory)
+        for x, y in zip(xs, ys):
+            masked = int(cv2.pointPolygonTest(contours, (x, y), False))
+            masks.append(masked)
+        
+        if -1 in masks:
+            if masks[0] == -1 and masks[-1] == 1:
+                out_to_in_trajectories.append(traj_idx)
+            elif masks[0] == 1 and masks[-1] == -1:
+                in_to_out_trajectories.append(traj_idx)
+            else:
+                complex_trajectories.append(traj_idx)
         else:
-            if contours is not None:
-                for x, y in zip(xs, ys):
-                    masked = cv2.pointPolygonTest(contours, (x, y), False)
-                    if masked == 1:
-                        if times[0] >= start_frame and times[-1] <= end_frame:
-                            filtered_trajectory_list.append(trajectory)
-                        break
+            stay_inside_trajectories.append(traj_idx)
+        
 
-    print(f'cropping info: ROI[{roi_file}],  Frame:[{start_frame}, {end_frame}]')
-    print(f'Number of trajectories before filtering:{len(trajectory_list)}, after filtering:{len(filtered_trajectory_list)}')
-    DataSave.write_trajectory(f'{".".join(trace_file.split("traces.csv")[:-1])}cropped_{start_frame}_{end_frame}_traces.csv', filtered_trajectory_list)
-    print(f'{".".join(trace_file.split("traces.csv")[:-1])}cropped_{start_frame}_{end_frame}_traces.csv is successfully generated.')
+    print(len(traj_indices), len(out_to_in_trajectories), len(in_to_out_trajectories), len(complex_trajectories), len(stay_inside_trajectories))
+    print(f"Filename: {h5_file},   ROIname: {roi_file}")
+    print(f'Nb of total trajectories: {len(traj_indices)}')
+    print(f'Nb of Out-to-In trajectories: {len(out_to_in_trajectories)},  ratio: {np.round(len(out_to_in_trajectories) / len(traj_indices),3)}')
+    print(f'Nb of In-to-Out trajectories: {len(in_to_out_trajectories)},  ratio: {np.round(len(in_to_out_trajectories) / len(traj_indices),3)}')
+    print(f'Nb of Complex trajectories: {len(complex_trajectories)},  ratio: {np.round(len(complex_trajectories) / len(traj_indices),3)}')
 
 
 def linear_fit(msd:pd.DataFrame, timepoints:dict, states:list):

@@ -2,7 +2,7 @@ import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
 from module.visuailzation import trajectory_visualization, draw_labeled_multigraph
-from module.preprocessing import preprocessing, count_cumul_trajs_with_roi, diffusion_coefficient
+from module.preprocessing import preprocessing, count_cumul_trajs_with_roi, diffusion_coefficient, check_roi_passing_traces
 from module.fileIO.DataLoad import read_multiple_csv, read_multiple_h5s
 from scipy.stats import bootstrap
 
@@ -244,6 +244,19 @@ axs[0].set_ylabel(r'Accumulated counts')
 fig.supxlabel(r'Time (sec)')
 fig.suptitle(f'Number of accumulated trajectories from {round(start_frame*FRAMERATE,2)} to {round(end_frame*FRAMERATE,2)} sec.')
 plt.tight_layout()
+
+
+#Calculate the diffusion coefficient for each state until t. e.g., calculate diffusion coefficient with tamsd until t0 for the state 0.
+if tamsd is not None:
+    t0 = 0.25
+    t1 = 0.12
+    nb_0 = tamsd[tamsd['time'] == t0]
+    nb_0 = nb_0[nb_0['state']==0]['nb_data'].to_numpy()[0]
+    nb_1 = tamsd[tamsd['time'] == t1]
+    nb_1 = nb_1[nb_1['state']==1]['nb_data'].to_numpy()[0]
+    print(f'\n\nFile name: {FOLDER.split('/')[-1]}')
+    print('diffusion coefficient of states', diffusion_coefficient(tamsd, {0:t0, 1:t1}, states))
+    print(f"calculated until 0: {t0}sec with nb of data {nb_0}  and  1: {t1}sec with nb of data {nb_1}")
 
 
 plt.show()
