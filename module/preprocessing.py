@@ -596,8 +596,6 @@ def check_roi_passing_traces(h5_file:str, roi_file:str|None):
         else:
             stay_inside_trajectories.append(traj_idx)
         
-
-    print(len(traj_indices), len(out_to_in_trajectories), len(in_to_out_trajectories), len(complex_trajectories), len(stay_inside_trajectories))
     print(f"Filename: {h5_file},   ROIname: {roi_file}")
     print(f'Nb of total trajectories: {len(traj_indices)}')
     print(f'Nb of Out-to-In trajectories: {len(out_to_in_trajectories)},  ratio: {np.round(len(out_to_in_trajectories) / len(traj_indices),3)}')
