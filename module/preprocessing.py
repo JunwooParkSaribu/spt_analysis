@@ -596,11 +596,12 @@ def check_roi_passing_traces(h5_file:str, roi_file:str|None):
         else:
             stay_inside_trajectories.append(traj_idx)
         
-    print(f"Filename: {h5_file},   ROIname: {roi_file}")
+    print(f"Filename: {h5_file}\nROIname: {roi_file}")
     print(f'Nb of total trajectories: {len(traj_indices)}')
     print(f'Nb of Out-to-In trajectories: {len(out_to_in_trajectories)},  ratio: {np.round(len(out_to_in_trajectories) / len(traj_indices),3)}')
     print(f'Nb of In-to-Out trajectories: {len(in_to_out_trajectories)},  ratio: {np.round(len(in_to_out_trajectories) / len(traj_indices),3)}')
     print(f'Nb of Complex trajectories: {len(complex_trajectories)},  ratio: {np.round(len(complex_trajectories) / len(traj_indices),3)}')
+    print(f'')
 
 
 def linear_fit(msd:pd.DataFrame, timepoints:dict, states:list):
