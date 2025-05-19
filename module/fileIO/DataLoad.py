@@ -16,7 +16,7 @@ def read_h5(file):
 
 def read_csv(file):
     csv_data = pd.read_csv(file)
-    col_names = ['traj_idx', 'frame', 'x', 'y', 'z', 'state', 'K', 'alpha']
+    col_names = ['frame', 'x', 'y', 'z', 'state', 'K', 'alpha']
     z = np.zeros(len(csv_data.iloc[:, 1]))
     state = np.zeros(len(csv_data.iloc[:, 1]), dtype=np.int32)
     K = np.zeros(len(csv_data.iloc[:, 1]))
@@ -25,6 +25,8 @@ def read_csv(file):
     csv_data = csv_data.assign(state = state)
     csv_data = csv_data.assign(K = K)
     csv_data = csv_data.assign(alpha = alpha)
+    convert_dict = {'state': int, 'frame': int}
+    csv_data = csv_data.astype(convert_dict)
     return csv_data
 
 
