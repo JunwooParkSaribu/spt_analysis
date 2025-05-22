@@ -7,6 +7,7 @@ import matplotlib.colors as mcolors
 import matplotlib.patches as mpatches
 import matplotlib as mpl
 from tqdm import tqdm
+from roifile import roifile
 
 
 def trajectory_visualization_old(output_path:str, data:pd.DataFrame, cutoff:int):
@@ -37,7 +38,7 @@ def trajectory_visualization_old(output_path:str, data:pd.DataFrame, cutoff:int)
     cv2.imwrite(f'{output_path}/visualization.png', image)
 
 
-def trajectory_visualization(original_data:pd.DataFrame, analysis_data1:pd.DataFrame, cutoff:int, pixelmicron:float, resolution_multiplier=20) -> np.ndarray:
+def trajectory_visualization(original_data:pd.DataFrame, analysis_data1:pd.DataFrame, cutoff:int, pixelmicron:float, resolution_multiplier=20, roi='') -> np.ndarray:
     print("** visualizing trajectories... **")
     scale = resolution_multiplier
     thickness = 1
@@ -69,7 +70,16 @@ def trajectory_visualization(original_data:pd.DataFrame, analysis_data1:pd.DataF
                     prev_pt = pts[i]
                     next_pt = pts[i+1]
                     cv2.line(image, prev_pt, next_pt, traj_color, thickness)
-    cv2.line(image, [int(max(0, x_width - 5*scale - int(scale/pixelmicron))), int(max(0, y_width - 5*scale))], [int(max(0, x_width - 5*scale)) , int(max(0, y_width - 5*scale))], (255, 255, 255), 6)
+
+    cv2.line(image, [int(max(0, x_width - 2*scale - int(scale/pixelmicron))), int(max(0, y_width - 2*scale))], [int(max(0, x_width - 2*scale)) , int(max(0, y_width - 2*scale))], (255, 255, 255), 6)
+    if len(roi) > 4:
+        from roifile import ImagejRoi
+        contours = ImagejRoi.fromfile(roi).coordinates().astype(np.int32)
+        for i in range(len(contours) - 1):
+            prev_pt = (np.array([contours[i][0] - min_x, contours[i][1] - min_y])*scale).astype(int)
+            next_pt = (np.array([contours[i+1][0] - min_x, contours[i+1][1] - min_y])*scale).astype(int)
+            cv2.circle(image, next_pt, thickness+1, (128, 128, 128), -1)
+            
     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
     color_maps['yellow'] = 'transitioning'
     color_maps_plot['transitioning'] = 'yellow'
