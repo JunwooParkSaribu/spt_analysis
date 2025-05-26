@@ -269,7 +269,7 @@ for idx in range(1, len(states)):
     ecdf_gt = ecdf(gt)
     result = ks_2samp(gt, comp, method='exact')
     axs[1].vlines(result.statistic_location, ecdf_comp.cdf.evaluate(result.statistic_location), ecdf_gt.cdf.evaluate(result.statistic_location), colors=cmap((idx-1)/(len(states) - 1)), alpha=0.6)
-    legend_labels.append(f'D: {np.round(result.statistic, 3)}, {states[0]} v {states[idx]}')
+    legend_labels.append(f'D: {np.round(result.statistic, 3)}, state:{states[0]} vs state:{states[idx]}')
     legend_results.append(np.round(result.statistic, 3))
 custom_lines = np.array(custom_lines)[np.argsort(legend_results)]
 legend_labels = np.array(legend_labels)[np.argsort(legend_results)]
