@@ -52,9 +52,15 @@ def preprocessing(data, pixelmicrons, framerate, cutoff, tamsd_calcul=True):
     analysis_data1[f'duration'] = []
     analysis_data1[f'traj_id'] = []
     analysis_data1[f'color'] = []
+
     analysis_data2 = {}
     analysis_data2[f'displacements'] = []
     analysis_data2[f'state'] = []
+
+    analysis_data3 = {}
+    analysis_data3[f'angles'] = []
+    analysis_data3[f'state'] = []
+
     msd_ragged_ens_trajs = {st:[] for st in total_states}
     tamsd_ragged_ens_trajs = {st:[] for st in total_states}
     msd = {}
@@ -132,7 +138,14 @@ def preprocessing(data, pixelmicrons, framerate, cutoff, tamsd_calcul=True):
 
                 # calcultae jump distances                
                 jump_distances = (np.sqrt(((sub_trajectory.x.iloc[1:].to_numpy() - sub_trajectory.x.iloc[:-1].to_numpy()) ** 2) / (sub_trajectory.frame.iloc[1:].to_numpy() - sub_trajectory.frame.iloc[:-1].to_numpy())
-                                         + ((sub_trajectory.y.iloc[1:].to_numpy() - sub_trajectory.y.iloc[:-1].to_numpy()) ** 2) / (sub_trajectory.frame.iloc[1:].to_numpy() - sub_trajectory.frame.iloc[:-1].to_numpy()))) 
+                                         + ((sub_trajectory.y.iloc[1:].to_numpy() - sub_trajectory.y.iloc[:-1].to_numpy()) ** 2) / (sub_trajectory.frame.iloc[1:].to_numpy() - sub_trajectory.frame.iloc[:-1].to_numpy()) )) 
+                
+
+                # angles
+                x_vec = (sub_trajectory.x.iloc[1:].to_numpy() - sub_trajectory.x.iloc[:-1].to_numpy())
+                y_vec = (sub_trajectory.y.iloc[1:].to_numpy() - sub_trajectory.y.iloc[:-1].to_numpy())
+                vecs = np.vstack([x_vec, y_vec]).T
+                angles = [dot_product_angle(vecs[vec_idx], vecs[vec_idx+1]) for vec_idx in range(len(vecs) - 1)]
 
 
                 # MSD
@@ -180,9 +193,16 @@ def preprocessing(data, pixelmicrons, framerate, cutoff, tamsd_calcul=True):
                 analysis_data1[f'duration'].append(duration)
                 analysis_data1[f'traj_id'].append(sub_trajectory.traj_idx.iloc[0])
 
+
                 # add data2 for the visualization
                 analysis_data2[f'displacements'].extend(list(jump_distances))
                 analysis_data2[f'state'].extend([sub_trajectory.state.iloc[0]] * len(list(jump_distances)))
+
+
+                # add data3 for angles
+                analysis_data3[f'angles'].extend(list(angles))
+                analysis_data3[f'state'].extend([sub_trajectory.state.iloc[0]] * len(list(angles)))
+
 
     # calculate average of msd and tamsd for each state
     for state_key in total_states:
@@ -241,6 +261,7 @@ def preprocessing(data, pixelmicrons, framerate, cutoff, tamsd_calcul=True):
 
     analysis_data1 = pd.DataFrame(analysis_data1).astype({'state': int, 'duration': float, 'traj_id':str})
     analysis_data2 = pd.DataFrame(analysis_data2)
+    analysis_data3 = pd.DataFrame(analysis_data3)
     msd = pd.DataFrame(msd)
     tamsd = pd.DataFrame(tamsd)
 
@@ -248,7 +269,7 @@ def preprocessing(data, pixelmicrons, framerate, cutoff, tamsd_calcul=True):
         tamsd = None
         
     print('** preprocessing finished **')
-    return analysis_data1, analysis_data2, state_markov, state_graph, msd, tamsd, total_states, state_changing_duration
+    return analysis_data1, analysis_data2, analysis_data3, state_markov, state_graph, msd, tamsd, total_states, state_changing_duration
 
 
 def get_groundtruth_with_label(folder, label_folder, pixelmicrons, framerate, cutoff, tamsd_calcul=True):
@@ -636,3 +657,12 @@ def diffusion_coefficient(msd:pd.DataFrame, timepoints:dict, states:list):
             diff_coef.append(np.mean(diff_coef_lag) / time_lag)
         diff_coef_state[state] = np.round(np.mean(diff_coef), 4)
     return diff_coef_state
+
+
+def dot_product_angle(v1,v2):
+    v1 = np.array(v1)
+    v2 = np.array(v2)
+    angle = -np.degrees(np.arctan2(v2[1], v2[0]) - np.arctan2(v1[1], v1[0]))
+    if angle < 0:
+        angle = 360 + angle
+    return angle

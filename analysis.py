@@ -1,10 +1,12 @@
 import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
+import matplotlib as mpl
+from matplotlib.lines import Line2D
 from module.visuailzation import trajectory_visualization, draw_labeled_multigraph
 from module.preprocessing import preprocessing, count_cumul_trajs_with_roi, diffusion_coefficient, check_roi_passing_traces
 from module.fileIO.DataLoad import read_multiple_csv, read_multiple_h5s
-from scipy.stats import bootstrap
+from scipy.stats import bootstrap, ks_2samp, ecdf
 
 
 
@@ -36,7 +38,7 @@ preprocessing includes below steps.
 If you want to calculate tamsd, set it as True. It is off in default since tamsd take time to calculate it.
 """
 original_data = read_multiple_h5s(path=FOLDER)
-analysis_data1, analysis_data2, state_markov, state_graph, msd, tamsd, states, state_changing_duration = preprocessing(data=original_data, pixelmicrons=PIXELMICRONS, framerate=FRAMERATE, cutoff=CUTOFF, tamsd_calcul=False)
+analysis_data1, analysis_data2, analysis_data3, state_markov, state_graph, msd, tamsd, states, state_changing_duration = preprocessing(data=original_data, pixelmicrons=PIXELMICRONS, framerate=FRAMERATE, cutoff=CUTOFF, tamsd_calcul=False)
 trajectory_image, legend_patch, cmap_for_graph, cmap_for_plot = trajectory_visualization(original_data, analysis_data1, CUTOFF, PIXELMICRONS, resolution_multiplier=20, roi='')
 
 
@@ -46,14 +48,15 @@ From here, we treat data to make plots or print results.
 Data is stored as
 1. analysis_data1: (DataFrame: contains data of mean_jump_distance, log10_K, alpha, state, duration, traj_id)
 2. analysis_data2: (DataFrame: contains data of displacments, state)
-3. state_markov: (matrix: contains transition probability)
-4. state_graph: (network: built from transitions between states(weight: nb of occurence of transitions))
-5. msd: (DataFrame: contains msd for each state.) 
-6. tamsd: (DataFrame: contains ensemble-averaged tamsd for each state.) 
+3. analysis_data3: (DataFrame: contains data of angles, state)
+4. state_markov: (matrix: contains transition probability)
+5. state_graph: (network: built from transitions between states(weight: nb of occurence of transitions))
+6. msd: (DataFrame: contains msd for each state.) 
+7. tamsd: (DataFrame: contains ensemble-averaged tamsd for each state.) 
 -> ref: https://www.researchgate.net/publication/352833354_Characterising_stochastic_motion_in_heterogeneous_media_driven_by_coloured_non-Gaussian_noise
 -> ref: https://arxiv.org/pdf/1205.2100
-7. states: classified states beforehand with BI-ADD or other tools.
-8. state_changing_duration: list containing the durations of state transitioning trajectories.
+8. states: classified states beforehand with BI-ADD or other tools.
+9. state_changing_duration: list containing the durations of state transitioning trajectories.
 
 Units: 
 log10_K: generalized diffusion coefficient in log10, um^2/s^alpha.
@@ -65,6 +68,7 @@ displacement: displacement(time lag=1) of all trajectories in um.
 """
 print(f'\nanalysis_data1:\n', analysis_data1)
 print(f'\nanalysis_data2:\n', analysis_data2)
+print(f'\nanalysis_data3:\n', analysis_data3)
 print(f'\nMSD:\n', msd)
 print(f'\nEnsemble-averaged TAMSD:\n', tamsd)
 
@@ -246,6 +250,37 @@ fig.suptitle(f'Number of accumulated trajectories from {round(start_frame*FRAMER
 plt.tight_layout()
 
 
+#p13: angles histogram
+fig, axs = plt.subplots(1, 2, num=f'p13', figsize=(18, 9))
+sns.histplot(data=analysis_data3, x='angles', stat='proportion', hue='state', common_norm=False, bins=number_of_bins, kde=True, ax=axs[0], kde_kws={'bw_adjust': 1})
+sns.ecdfplot(data=analysis_data3, x='angles', stat='proportion', hue='state', ax=axs[1])
+axs[0].set_title(f'angle histogram')
+axs[0].set_xlabel(r'clock-wise angle (degree)')
+axs[1].set_title(f'angle CDF')
+axs[1].set_xlabel(r'clock-wise angle (degree)')
+cmap = mpl.colormaps['cividis']
+custom_lines = [Line2D([0], [0], color=cmap(i/(len(states) - 1)), lw=2) for i in range(len(states) - 1)]
+legend_labels = []
+legend_results = []
+for idx in range(1, len(states)):
+    gt = analysis_data3[analysis_data3['state']==states[0]]['angles']
+    comp = analysis_data3[analysis_data3['state']==states[idx]]['angles']
+    ecdf_comp = ecdf(comp)
+    ecdf_gt = ecdf(gt)
+    result = ks_2samp(gt, comp, method='exact')
+    axs[1].vlines(result.statistic_location, ecdf_comp.cdf.evaluate(result.statistic_location), ecdf_gt.cdf.evaluate(result.statistic_location), colors=cmap((idx-1)/(len(states) - 1)), alpha=0.6)
+    legend_labels.append(f'D: {np.round(result.statistic, 3)}, {states[0]} v {states[idx]}')
+    legend_results.append(np.round(result.statistic, 3))
+custom_lines = np.array(custom_lines)[np.argsort(legend_results)]
+legend_labels = np.array(legend_labels)[np.argsort(legend_results)]
+old_legend = axs[0].legend_
+handles = old_legend.legend_handles
+labels = [t.get_text() for t in old_legend.get_texts()]
+axs[0].legend(handles, labels)
+axs[1].legend(custom_lines, legend_labels, title='KS test')
+plt.tight_layout()
+
+
 #Calculate the diffusion coefficient for each state until t. e.g., calculate diffusion coefficient with tamsd until t0 for the state 0.
 if tamsd is not None:
     t0 = 0.25
@@ -257,6 +292,7 @@ if tamsd is not None:
     print(f'\n\nFile name: {FOLDER.split('/')[-1]}')
     print('diffusion coefficient of states', diffusion_coefficient(tamsd, {0:t0, 1:t1}, states))
     print(f"calculated until 0: {t0}sec with nb of data {nb_0}  and  1: {t1}sec with nb of data {nb_1}")
+
 
 
 plt.show()
