@@ -38,12 +38,14 @@ def trajectory_visualization_old(output_path:str, data:pd.DataFrame, cutoff:int)
     cv2.imwrite(f'{output_path}/visualization.png', image)
 
 
-def trajectory_visualization(original_data:pd.DataFrame, analysis_data1:pd.DataFrame, cutoff:int, pixelmicron:float, resolution_multiplier=20, roi='') -> np.ndarray:
+def trajectory_visualization(original_data:pd.DataFrame, analysis_data1:pd.DataFrame, 
+                             cutoff:int, pixelmicron:float, resolution_multiplier=20, roi='', scalebar=True, arrow=False, color_for_roi=False) -> np.ndarray:
     print("** visualizing trajectories... **")
     scale = resolution_multiplier
     thickness = 1
     color_maps = {}
     color_maps_plot = {}
+    roi_center = None
 
     min_x = original_data['x'].min()
     min_y = original_data['y'].min()
@@ -52,6 +54,18 @@ def trajectory_visualization(original_data:pd.DataFrame, analysis_data1:pd.DataF
     x_width = int(((max_x - min_x) * scale))
     y_width = int(((max_y - min_y) * scale))
     image = np.ones((y_width, x_width, 3)).astype(np.uint8)
+
+    if len(roi) > 4:
+        from roifile import ImagejRoi
+        contours = ImagejRoi.fromfile(roi).coordinates().astype(np.int32)
+        roi_center = (np.array([contours[0][0] - min_x, contours[0][1] - min_y])*scale).astype(int)
+        for i in range(len(contours) - 1):
+            prev_pt = (np.array([contours[i][0] - min_x, contours[i][1] - min_y])*scale).astype(int)
+            next_pt = (np.array([contours[i+1][0] - min_x, contours[i+1][1] - min_y])*scale).astype(int)
+            cv2.circle(image, next_pt, thickness+1, (128, 128, 128), -1)
+            roi_center += next_pt
+        roi_center = roi_center.astype(float)
+        roi_center /= len(contours)
 
     for traj_idx in tqdm(original_data['traj_idx'].unique(), ncols=120, desc=f'Visualization', unit='trajectory'):
         single_traj = original_data[original_data['traj_idx'] == traj_idx]
@@ -69,16 +83,26 @@ def trajectory_visualization(original_data:pd.DataFrame, analysis_data1:pd.DataF
                 for i in range(len(pts)-1):
                     prev_pt = pts[i]
                     next_pt = pts[i+1]
-                    cv2.line(image, prev_pt, next_pt, traj_color, thickness)
-
-    cv2.line(image, [int(max(0, x_width - 2*scale - int(scale/pixelmicron))), int(max(0, y_width - 2*scale))], [int(max(0, x_width - 2*scale)) , int(max(0, y_width - 2*scale))], (255, 255, 255), 6)
-    if len(roi) > 4:
-        from roifile import ImagejRoi
-        contours = ImagejRoi.fromfile(roi).coordinates().astype(np.int32)
-        for i in range(len(contours) - 1):
-            prev_pt = (np.array([contours[i][0] - min_x, contours[i][1] - min_y])*scale).astype(int)
-            next_pt = (np.array([contours[i+1][0] - min_x, contours[i+1][1] - min_y])*scale).astype(int)
-            cv2.circle(image, next_pt, thickness+1, (128, 128, 128), -1)
+                    if arrow:
+                        if color_for_roi and roi_center is not None:
+                            if np.sqrt(np.sum((next_pt - roi_center)**2)) < np.sqrt(np.sum((prev_pt - roi_center)**2)):
+                                cv2.arrowedLine(image, prev_pt, next_pt, (0, 0, 255), thickness)
+                            else:
+                                cv2.arrowedLine(image, prev_pt, next_pt, (0, 255, 255), thickness)
+                            """
+                            from module.preprocessing import dot_product_angle
+                            angle = dot_product_angle(next_pt - prev_pt, roi_center - prev_pt)
+                            if 0 < angle < 90 or 270 < angle < 360:
+                                cv2.arrowedLine(image, prev_pt, next_pt, (0, 0, 255), thickness)
+                            else:
+                                cv2.arrowedLine(image, prev_pt, next_pt, (0, 255, 255), thickness)
+                            """
+                        else:
+                            cv2.arrowedLine(image, prev_pt, next_pt, traj_color, thickness)
+                    else:
+                        cv2.line(image, prev_pt, next_pt, traj_color, thickness)
+    if scalebar:
+        cv2.line(image, [int(max(0, x_width - 2*scale - int(scale/pixelmicron))), int(max(0, y_width - 2*scale))], [int(max(0, x_width - 2*scale)) , int(max(0, y_width - 2*scale))], (255, 255, 255), 6)
             
     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
     color_maps['yellow'] = 'transitioning'

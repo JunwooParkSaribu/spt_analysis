@@ -39,7 +39,9 @@ If you want to calculate tamsd, set it as True. It is off in default since tamsd
 """
 original_data = read_multiple_h5s(path=FOLDER)
 analysis_data1, analysis_data2, analysis_data3, state_markov, state_graph, msd, tamsd, states, state_changing_duration = preprocessing(data=original_data, pixelmicrons=PIXELMICRONS, framerate=FRAMERATE, cutoff=CUTOFF, tamsd_calcul=False)
-trajectory_image, legend_patch, cmap_for_graph, cmap_for_plot = trajectory_visualization(original_data, analysis_data1, CUTOFF, PIXELMICRONS, resolution_multiplier=20, roi='')
+trajectory_image, legend_patch, cmap_for_graph, cmap_for_plot = trajectory_visualization(original_data, analysis_data1, CUTOFF, PIXELMICRONS, resolution_multiplier=20, 
+                                                                                         roi='', 
+                                                                                         scalebar=True, arrow=False, color_for_roi=False)
 
 
 
