@@ -15,7 +15,7 @@ Options for the analysis, processing of the data.
 """
 FOLDER = f'condition2'  # The folder containing result .h5 files, condition2 contains samples of simulated fBm trajectories transitioning its states.
 PIXELMICRONS = 0.16  # length of pixel in micrometer. (0.16 -> the length of each pixel is 0.16 micrometer, it varies depending on microscopy.)
-FRAMERATE = 0.16  # exposure time of video for each frame in seconds. (0.01 corresponds to the 10ms) 
+FRAMERATE = 0.01  # exposure time of video for each frame in seconds. (0.01 corresponds to the 10ms) 
 CUTOFF = 5   # mininum length of trajectory to consider
 number_of_bins = 50   # below are the general settings of result plots, you can change here or directly for each plot.
 bootstrap_bins = 300
@@ -24,7 +24,8 @@ figure_font_size = 20
 traj_img_resolution = 20
 y_lim_for_percent = [0, 35]
 x_lim_for_mean_jump_distances = [0, 0.5]
-color_palette = ['red','cyan','green','blue','gray','pink']  # colors for each state of trajectory type
+color_palette = ['red','cyan','green','blue','gray','pink'] # colors for each state of trajectory type
+
 
 
 """
@@ -124,6 +125,9 @@ plt.tight_layout()
 
 
 #p4: state transitioning probabilities
+"""
+Self-loop indicates the number of non state-changing trajectories in the graph.
+"""
 if len(states) >= 2:  # make plot only when the total number of different states is >= 2.
     print("\n** Making figures... please wait, it takes time if the number of trajectories is big. **\n")
     fig, axs = plt.subplots(nrows=2, ncols=len(states), num=f'p4')
