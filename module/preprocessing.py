@@ -7,9 +7,9 @@ from tqdm import tqdm
 import cv2
 
 
-def preprocessing(data, pixelmicrons, framerate, cutoff, tamsd_calcul=True):
+def preprocessing(data, pixelmicrons, framerate, cutoff, tamsd_calcul=True, color_palette = ['red','cyan','green','blue','gray','pink']):
     # load FreeTrace+Bi-ADD data without NaN (NaN where trajectory length is shorter than 5, default in BI-ADD)
-    color_palette = ['red','cyan','green','blue','gray','pink']
+    assert 'yellow' not in color_palette, "Yellow can't be included in the color palette, please exclude yellow."
     data = data.dropna()
     # using dictionary to convert specific columns
     convert_dict = {'state': int}

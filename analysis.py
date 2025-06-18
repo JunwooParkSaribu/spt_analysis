@@ -15,33 +15,45 @@ Options for the analysis, processing of the data.
 """
 FOLDER = f'condition2'  # The folder containing result .h5 files, condition2 contains samples of simulated fBm trajectories transitioning its states.
 PIXELMICRONS = 0.16  # length of pixel in micrometer. (0.16 -> the length of each pixel is 0.16 micrometer, it varies depending on microscopy.)
-FRAMERATE = 0.01  # exposure time of video for each frame in seconds. (0.01 corresponds to the 10ms) 
+FRAMERATE = 0.16  # exposure time of video for each frame in seconds. (0.01 corresponds to the 10ms) 
 CUTOFF = 5   # mininum length of trajectory to consider
 number_of_bins = 50   # below are the general settings of result plots, you can change here or directly for each plot.
 bootstrap_bins = 300
 figure_resolution_in_dpi = 200
 figure_font_size = 20
+traj_img_resolution = 20
 y_lim_for_percent = [0, 35]
 x_lim_for_mean_jump_distances = [0, 0.5]
-
+color_palette = ['red','cyan','green','blue','gray','pink']  # colors for each state of trajectory type
 
 
 """
-preprocessing generates 7 data.
+preprocessing generates 9 types of data.
 @params: data folder path, pixel microns, frame rate, cutoff
-@output: DataFrame, DataFrame, ndarray, networkx grpah, DataFrame, DataFrame, list, dict
+@output: DataFrame, DataFrame, DataFrame, ndarray, networkx grpah, DataFrame, DataFrame, list, dict
 
 preprocessing includes below steps.
 1. exclude the trajectory where length is shorter than CUTOFF.
 2. convert from pixel unit to micrometer unit with PIXELMICRONS and FRAMERATE.
-3. generate 4 DataFrames, 1 ndarray representation of markovchain, 1 graph respresentation of markovchain, 1 list containing states, 1 dictionary containing the duration of transitioning trajectories.
+3. generate 5 DataFrames, 1 ndarray representation of markovchain, 1 graph respresentation of markovchain, 1 list containing states, 1 dictionary containing the duration of transitioning trajectories.
 If you want to calculate tamsd, set it as True. It is off in default since tamsd take time to calculate it.
 """
 original_data = read_multiple_h5s(path=FOLDER)
-analysis_data1, analysis_data2, analysis_data3, state_markov, state_graph, msd, tamsd, states, state_changing_duration = preprocessing(data=original_data, pixelmicrons=PIXELMICRONS, framerate=FRAMERATE, cutoff=CUTOFF, tamsd_calcul=False)
-trajectory_image, legend_patch, cmap_for_graph, cmap_for_plot = trajectory_visualization(original_data, analysis_data1, CUTOFF, PIXELMICRONS, resolution_multiplier=20, 
+analysis_data1, analysis_data2, analysis_data3, state_markov, state_graph, msd, tamsd, states, state_changing_duration = preprocessing(data=original_data, 
+                                                                                                                                       pixelmicrons=PIXELMICRONS,
+                                                                                                                                       framerate=FRAMERATE,
+                                                                                                                                       cutoff=CUTOFF,
+                                                                                                                                       tamsd_calcul=False,
+                                                                                                                                       color_palette=color_palette)
+trajectory_image, legend_patch, cmap_for_graph, cmap_for_plot = trajectory_visualization(original_data,
+                                                                                         analysis_data1,
+                                                                                         CUTOFF,
+                                                                                         PIXELMICRONS,
+                                                                                         resolution_multiplier=traj_img_resolution, 
                                                                                          roi='', 
-                                                                                         scalebar=True, arrow=False, color_for_roi=False)
+                                                                                         scalebar=True,
+                                                                                         arrow=False,
+                                                                                         color_for_roi=False)
 
 
 
@@ -78,7 +90,7 @@ print(f'\nEnsemble-averaged TAMSD:\n', tamsd)
 
 #p1: histogram with kde(kernel density estimation) plot of mean jump distance grouped by state.
 plt.figure(f'p1', dpi=figure_resolution_in_dpi)
-p1 = sns.histplot(analysis_data1, x=f'mean_jump_d', stat='percent', hue='state', bins=number_of_bins, kde=True)
+p1 = sns.histplot(analysis_data1, x=f'mean_jump_d', stat='percent', hue='state', bins=number_of_bins, palette=cmap_for_plot, kde=True)
 p1.set_xlabel(r'mean jump-distance($\mu m$)')
 p1.set_title(f'mean jump-distance for each state')
 plt.yticks(fontsize=figure_font_size)
@@ -100,24 +112,26 @@ p2.ax_joint.set_xticklabels(p2.ax_joint.get_xticks(), fontsize = figure_font_siz
 plt.tight_layout()
 
 
+
 #p3: histogram of states
 plt.figure(f'p3', dpi=figure_resolution_in_dpi)
-p3 = sns.histplot(data=analysis_data1, x="state", stat='percent', hue='state')
+p3 = sns.histplot(data=analysis_data1, x="state", stat='percent', hue='state', palette=cmap_for_plot)
 p3.set_title(f'population of states')
 plt.yticks(fontsize=figure_font_size)
 plt.xticks(fontsize=figure_font_size)
 plt.tight_layout()
 
 
+
 #p4: state transitioning probabilities
 if len(states) >= 2:  # make plot only when the total number of different states is >= 2.
     print("\n** Making figures... please wait, it takes time if the number of trajectories is big. **\n")
     fig, axs = plt.subplots(nrows=2, ncols=len(states), num=f'p4')
-    duration_bins = np.linspace(0, 2, 100)  # bin range: duration in seconds
+    #duration_bins = np.linspace(0, 10, 100)  # bin range: duration in seconds
     for st, ax in zip(states, axs[0]):
         for next_st in states:
             if st != next_st:
-                sns.histplot(state_changing_duration[tuple([st, next_st])], bins=duration_bins, kde=True, ax=ax, label=f'{st} -> {next_st}')
+                sns.histplot(state_changing_duration[tuple([st, next_st])], kde=True, ax=ax, label=f'{st} -> {next_st}')
                 ax.set_title(f'Duration of transitioning trajectories for the state: {st}')
                 ax.set_xlabel(r'Duration (sec)')
                 ax.legend()
@@ -127,9 +141,10 @@ if len(states) >= 2:  # make plot only when the total number of different states
     fig.tight_layout()
 
 
+
 #p5: displacement histogram
 plt.figure(f'p5', dpi=figure_resolution_in_dpi)
-p5 = sns.histplot(data=analysis_data2, x='displacements', stat='percent', hue='state', bins=number_of_bins, kde=True)
+p5 = sns.histplot(data=analysis_data2, x='displacements', stat='percent', hue='state', bins=number_of_bins, kde=True, palette=cmap_for_plot)
 p5.set_title(f'displacement histogram')
 p5.set_xlabel(r'displacment($\mu m$)')
 plt.yticks(fontsize=figure_font_size)
@@ -140,9 +155,10 @@ plt.xlim(x_lim_for_mean_jump_distances)
 plt.tight_layout()
 
 
+
 #p6: trajectory length(sec) histogram
 plt.figure(f'p6', dpi=figure_resolution_in_dpi)
-p6 = sns.histplot(data=analysis_data1, x='duration', stat='percent', hue='state', bins=number_of_bins, kde=True)
+p6 = sns.histplot(data=analysis_data1, x='duration', stat='percent', hue='state', bins=number_of_bins, kde=True, palette=cmap_for_plot)
 p6.set_title(f'trajectory length histogram')
 p6.set_xlabel(r'duration($s$)')
 plt.yticks(fontsize=figure_font_size)
@@ -151,9 +167,10 @@ plt.xticks(rotation=90)
 plt.tight_layout()
 
 
+
 #p7: MSD
 plt.figure(f'p7', dpi=figure_resolution_in_dpi)
-p7 = sns.lineplot(data=msd, x=msd['time'], y=msd['mean'], hue='state')
+p7 = sns.lineplot(data=msd, x=msd['time'], y=msd['mean'], hue='state', palette=cmap_for_plot)
 p7.set_title(f'MSD')
 p7.set_xlabel(r'time($s$)')
 p7.set_ylabel(r'$\frac{\text{MSD}}{\text{2} \cdot \text{dimension}}$ ($\mu m^2$)')
@@ -171,10 +188,11 @@ plt.xticks(rotation=90)
 plt.tight_layout()
 
 
+
 #p8: Ensemble-averaged TAMSD
 if tamsd is not None:
     plt.figure(f'p8', dpi=figure_resolution_in_dpi)
-    p8 = sns.lineplot(data=tamsd, x=tamsd['time'], y=tamsd['mean'], hue='state')
+    p8 = sns.lineplot(data=tamsd, x=tamsd['time'], y=tamsd['mean'], hue='state', palette=cmap_for_plot)
     p8.set_title(f'Ensemble-averaged TAMSD')
     p8.set_xlabel(r'lag time($s$)')
     p8.set_ylabel(r'$\frac{\text{TAMSD}}{\text{2} \cdot \text{dimension}}$ ($\mu m^2$)')
@@ -192,6 +210,7 @@ if tamsd is not None:
     plt.tight_layout()
 
 
+
 #p9: bootstrapped distribution with kde(kernel density estimation) plot for averaged mean jump-distances grouped by state.
 plt.figure(f'p9', dpi=figure_resolution_in_dpi)
 bootstrapped_data = {'averaged_mean_jump_distances':[], 'state':[]}
@@ -201,7 +220,7 @@ for st in analysis_data1['state'].unique():
     bootstrapped_data['averaged_mean_jump_distances'].extend(bts.bootstrap_distribution)
     bootstrapped_data['state'].extend([st] * len(bts.bootstrap_distribution))
     bootstrapped_results.append(bts)
-p9 = sns.histplot(bootstrapped_data, x=f'averaged_mean_jump_distances', stat='percent', hue='state', bins=bootstrap_bins, kde=False)
+p9 = sns.histplot(bootstrapped_data, x=f'averaged_mean_jump_distances', stat='percent', hue='state', bins=bootstrap_bins, kde=False, palette=cmap_for_plot)
 p9.set_xlabel(r'bootstrapped mean jump-distances($\mu m$)')
 p9.set_title(f'bootstrapped mean jump-distances for each state')
 plt.yticks(fontsize=figure_font_size)
@@ -212,16 +231,22 @@ plt.xlim(x_lim_for_mean_jump_distances)
 plt.tight_layout()
 
 
+
 #p10: population of each state as pie chart.
 plt.figure(f'p10', dpi=figure_resolution_in_dpi)
 state_population = []
 state_labels = []
+state_colors = []
 for st in analysis_data1['state'].unique():
     state_population.append(len(analysis_data1[analysis_data1['state'] == st]))
     state_labels.append(st)
-plt.pie(x=state_population, labels=[f'Nb of state {state_labels[st]}: {state_population[st]}' for st in state_labels], autopct='%.0f%%')
+    for st_c in analysis_data1[analysis_data1['state'] == st]['color'].unique():
+        if st_c != 'yellow':
+            state_colors.append(st_c)
+plt.pie(x=state_population, labels=[f'Nb of state {state_labels[st]}: {state_population[st]}' for st in state_labels], autopct='%.0f%%', colors=state_colors)
 plt.title('Population of each state')
 plt.tight_layout()
+
 
 
 #p11: trajectory image with respect to each state.
@@ -229,6 +254,7 @@ plt.figure(f'p11', dpi=figure_resolution_in_dpi)
 plt.imshow(trajectory_image)
 plt.legend(handles=legend_patch, loc='upper right', borderaxespad=0.)
 plt.tight_layout()
+
 
 
 #p12: accumulated number of trajectories in ROI or in the entire video. If you have ROI file, please fill the roi_file parameter.
@@ -252,10 +278,11 @@ fig.suptitle(f'Number of accumulated trajectories from {round(start_frame*FRAMER
 plt.tight_layout()
 
 
+
 #p13: angles histogram
 fig, axs = plt.subplots(1, 2, num=f'p13', figsize=(18, 9))
-sns.histplot(data=analysis_data3, x='angles', stat='proportion', hue='state', common_norm=False, bins=number_of_bins, kde=True, ax=axs[0], kde_kws={'bw_adjust': 1})
-sns.ecdfplot(data=analysis_data3, x='angles', stat='proportion', hue='state', ax=axs[1])
+sns.histplot(data=analysis_data3, x='angles', stat='proportion', hue='state', common_norm=False, bins=number_of_bins, kde=True, ax=axs[0], kde_kws={'bw_adjust': 1}, palette=cmap_for_plot)
+sns.ecdfplot(data=analysis_data3, x='angles', stat='proportion', hue='state', ax=axs[1], palette=cmap_for_plot)
 axs[0].set_title(f'angle histogram')
 axs[0].set_xlabel(r'clock-wise angle (degree)')
 axs[1].set_title(f'angle CDF')
@@ -281,6 +308,7 @@ labels = [t.get_text() for t in old_legend.get_texts()]
 axs[0].legend(handles, labels)
 axs[1].legend(custom_lines, legend_labels, title='KS test')
 plt.tight_layout()
+
 
 
 #Calculate the diffusion coefficient for each state until t. e.g., calculate diffusion coefficient with tamsd until t0 for the state 0.
