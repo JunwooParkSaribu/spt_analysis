@@ -17,14 +17,14 @@ FOLDER = f'condition2'  # The folder containing result .h5 files, condition2 con
 PIXELMICRONS = 0.16  # length of pixel in micrometer. (0.16 -> the length of each pixel is 0.16 micrometer, it varies depending on microscopy.)
 FRAMERATE = 0.01  # exposure time of video for each frame in seconds. (0.01 corresponds to the 10ms) 
 CUTOFF = 5   # mininum length of trajectory to consider
+traj_img_resolution = 20  # resolution factor of trajectory image. Too high value will exceeding your available space of RAM, resulting the process-kill.
 number_of_bins = 50   # below are the general settings of result plots, you can change here or directly for each plot.
 bootstrap_bins = 300
 figure_resolution_in_dpi = 200
 figure_font_size = 20
-traj_img_resolution = 20
 y_lim_for_percent = [0, 35]
 x_lim_for_mean_jump_distances = [0, 0.5]
-color_palette = ['red','cyan','green','blue','gray','pink'] # colors for each state of trajectory type
+color_palette = ['red','cyan','green','blue','gray','pink']  # colors for each state of trajectory type
 
 
 
