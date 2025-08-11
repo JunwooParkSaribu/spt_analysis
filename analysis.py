@@ -90,10 +90,10 @@ print(f'\nEnsemble-averaged TAMSD:\n', tamsd)
 
 
 #p1: histogram with kde(kernel density estimation) plot of mean jump distance grouped by state.
-plt.figure(f'p1', dpi=figure_resolution_in_dpi)
+plt.figure(f"p1", dpi=figure_resolution_in_dpi)
 p1 = sns.histplot(analysis_data1, x=f'mean_jump_d', stat='percent', hue='state', bins=number_of_bins, palette=cmap_for_plot, kde=True)
-p1.set_xlabel(r'mean jump-distance($\mu m$)')
-p1.set_title(f'mean jump-distance for each state')
+p1.set_xlabel(r"mean jump-distance($\mu m$)")
+p1.set_title(f"Mean jump-distances for {FRAMERATE} sec")
 plt.yticks(fontsize=figure_font_size)
 plt.xticks(fontsize=figure_font_size)
 plt.xticks(rotation=90)
@@ -104,10 +104,10 @@ plt.tight_layout()
 
 
 #p2: joint distribution plot of alpha(x-axis) and K(y-axis) for each state
-p2 = sns.jointplot(data=analysis_data1, x=f'alpha', y=f'log10_K', kind='scatter', hue='state', palette=cmap_for_plot, height=12, xlim=(-0.2, 2.2), 
-                   joint_kws={'data':analysis_data1, 'size':'duration', 'sizes':(40, 400), 'alpha':0.5})
-p2.set_axis_labels(xlabel=r'$\alpha$', ylabel=r'$log_{10}K(\mu m^2/sec^\alpha)$', fontsize=figure_font_size)
-p2.figure.suptitle(r'$\alpha$, $K$ distribution for each state')
+p2 = sns.jointplot(data=analysis_data1, x=f"alpha", y=f"log10_K", kind="scatter", hue="state", palette=cmap_for_plot, height=12, xlim=(-0.2, 2.2), 
+                   joint_kws={"data":analysis_data1, "size":"duration", "sizes":(40, 400), "alpha":0.5})
+p2.set_axis_labels(xlabel=r"$\alpha$", ylabel=rf"$log_{{10}}K\ ({round(PIXELMICRONS**2, 4)}\mu m^2/{FRAMERATE}sec^\alpha)$", fontsize=figure_font_size)
+p2.figure.suptitle(r"$\alpha$, $K$ distribution for each state")
 p2.ax_joint.set_yticklabels(p2.ax_joint.get_yticks(), fontsize = figure_font_size)
 p2.ax_joint.set_xticklabels(p2.ax_joint.get_xticks(), fontsize = figure_font_size)
 plt.tight_layout()
@@ -115,9 +115,9 @@ plt.tight_layout()
 
 
 #p3: histogram of states
-plt.figure(f'p3', dpi=figure_resolution_in_dpi)
+plt.figure(f"p3", dpi=figure_resolution_in_dpi)
 p3 = sns.histplot(data=analysis_data1, x="state", stat='percent', hue='state', palette=cmap_for_plot)
-p3.set_title(f'population of states')
+p3.set_title(f"Population of states")
 plt.yticks(fontsize=figure_font_size)
 plt.xticks(fontsize=figure_font_size)
 plt.tight_layout()
@@ -147,10 +147,10 @@ if len(states) >= 2:  # make plot only when the total number of different states
 
 
 #p5: displacement histogram
-plt.figure(f'p5', dpi=figure_resolution_in_dpi)
+plt.figure(f"p5", dpi=figure_resolution_in_dpi)
 p5 = sns.histplot(data=analysis_data2, x='displacements', stat='percent', hue='state', bins=number_of_bins, kde=True, palette=cmap_for_plot)
-p5.set_title(f'displacement histogram')
-p5.set_xlabel(r'displacment($\mu m$)')
+p5.set_title(f"Displacements for {FRAMERATE} sec")
+p5.set_xlabel(r"displacment($\mu m$)")
 plt.yticks(fontsize=figure_font_size)
 plt.xticks(fontsize=figure_font_size)
 plt.xticks(rotation=90)
@@ -161,9 +161,9 @@ plt.tight_layout()
 
 
 #p6: trajectory length(sec) histogram
-plt.figure(f'p6', dpi=figure_resolution_in_dpi)
+plt.figure(f"p6", dpi=figure_resolution_in_dpi)
 p6 = sns.histplot(data=analysis_data1, x='duration', stat='percent', hue='state', bins=number_of_bins, kde=True, palette=cmap_for_plot)
-p6.set_title(f'trajectory length histogram')
+p6.set_title(f'Trajectory durations')
 p6.set_xlabel(r'duration($s$)')
 plt.yticks(fontsize=figure_font_size)
 plt.xticks(fontsize=figure_font_size)
@@ -173,9 +173,9 @@ plt.tight_layout()
 
 
 #p7: MSD
-plt.figure(f'p7', dpi=figure_resolution_in_dpi)
+plt.figure(f"p7", dpi=figure_resolution_in_dpi)
 p7 = sns.lineplot(data=msd, x=msd['time'], y=msd['mean'], hue='state', palette=cmap_for_plot)
-p7.set_title(f'MSD')
+p7.set_title(f"MSD")
 p7.set_xlabel(r'time($s$)')
 p7.set_ylabel(r'$\frac{\text{MSD}}{\text{2} \cdot \text{dimension}}$ ($\mu m^2$)')
 plt.yticks(fontsize=figure_font_size)
@@ -195,7 +195,7 @@ plt.tight_layout()
 
 #p8: Ensemble-averaged TAMSD
 if tamsd is not None:
-    plt.figure(f'p8', dpi=figure_resolution_in_dpi)
+    plt.figure(f"p8", dpi=figure_resolution_in_dpi)
     p8 = sns.lineplot(data=tamsd, x=tamsd['time'], y=tamsd['mean'], hue='state', palette=cmap_for_plot)
     p8.set_title(f'Ensemble-averaged TAMSD')
     p8.set_xlabel(r'lag time($s$)')
@@ -216,7 +216,7 @@ if tamsd is not None:
 
 
 #p9: bootstrapped distribution with kde(kernel density estimation) plot for averaged mean jump-distances grouped by state.
-plt.figure(f'p9', dpi=figure_resolution_in_dpi)
+plt.figure(f"p9", dpi=figure_resolution_in_dpi)
 bootstrapped_data = {'averaged_mean_jump_distances':[], 'state':[]}
 bootstrapped_results = []
 for st in analysis_data1['state'].unique():
@@ -224,9 +224,9 @@ for st in analysis_data1['state'].unique():
     bootstrapped_data['averaged_mean_jump_distances'].extend(bts.bootstrap_distribution)
     bootstrapped_data['state'].extend([st] * len(bts.bootstrap_distribution))
     bootstrapped_results.append(bts)
-p9 = sns.histplot(bootstrapped_data, x=f'averaged_mean_jump_distances', stat='percent', hue='state', bins=bootstrap_bins, kde=False, palette=cmap_for_plot)
+p9 = sns.histplot(bootstrapped_data, x=f"averaged_mean_jump_distances", stat='percent', hue='state', bins=bootstrap_bins, kde=False, palette=cmap_for_plot)
 p9.set_xlabel(r'bootstrapped mean jump-distances($\mu m$)')
-p9.set_title(f'bootstrapped mean jump-distances for each state')
+p9.set_title(f"Bootstrapped mean jump-distances for each state")
 plt.yticks(fontsize=figure_font_size)
 plt.xticks(fontsize=figure_font_size)
 plt.xticks(rotation=90)
@@ -237,7 +237,7 @@ plt.tight_layout()
 
 
 #p10: population of each state as pie chart.
-plt.figure(f'p10', dpi=figure_resolution_in_dpi)
+plt.figure(f"p10", dpi=figure_resolution_in_dpi)
 state_population = []
 state_labels = []
 state_colors = []
@@ -278,13 +278,13 @@ axs[0].set_xlim([0, x_axis[-1] + FRAMERATE])
 axs[1].set_xlim([0, x_axis[-1] + FRAMERATE])
 axs[0].set_ylabel(r'Accumulated counts')
 fig.supxlabel(r'Time (sec)')
-fig.suptitle(f'Number of accumulated trajectories from {round(start_frame*FRAMERATE,2)} to {round(end_frame*FRAMERATE,2)} sec.')
+fig.suptitle(f"Number of accumulated trajectories from {round(start_frame*FRAMERATE,2)} to {round(end_frame*FRAMERATE,2)} sec.")
 plt.tight_layout()
 
 
 
 #p13: angles histogram
-fig, axs = plt.subplots(1, 2, num=f'p13', figsize=(18, 9))
+fig, axs = plt.subplots(1, 2, num=f"p13", figsize=(18, 9))
 sns.histplot(data=analysis_data3, x='angles', stat='proportion', hue='state', common_norm=False, bins=number_of_bins, kde=True, ax=axs[0], kde_kws={'bw_adjust': 1}, palette=cmap_for_plot)
 sns.ecdfplot(data=analysis_data3, x='angles', stat='proportion', hue='state', ax=axs[1], palette=cmap_for_plot)
 axs[0].set_title(f'angle histogram')
@@ -302,7 +302,7 @@ for idx in range(1, len(states)):
     ecdf_gt = ecdf(gt)
     result = ks_2samp(gt, comp, method='exact')
     axs[1].vlines(result.statistic_location, ecdf_comp.cdf.evaluate(result.statistic_location), ecdf_gt.cdf.evaluate(result.statistic_location), colors=cmap((idx-1)/(len(states) - 1)), alpha=0.6)
-    legend_labels.append(f'D: {np.round(result.statistic, 3)}, state:{states[0]} vs state:{states[idx]}')
+    legend_labels.append(f"D: {np.round(result.statistic, 3)}, state:{states[0]} vs state:{states[idx]}")
     legend_results.append(np.round(result.statistic, 3))
 custom_lines = np.array(custom_lines)[np.argsort(legend_results)]
 legend_labels = np.array(legend_labels)[np.argsort(legend_results)]
@@ -323,8 +323,8 @@ if tamsd is not None:
     nb_0 = nb_0[nb_0['state']==0]['nb_data'].to_numpy()[0]
     nb_1 = tamsd[tamsd['time'] == t1]
     nb_1 = nb_1[nb_1['state']==1]['nb_data'].to_numpy()[0]
-    print(f'\n\nFile name: {FOLDER.split('/')[-1]}')
-    print('diffusion coefficient of states', diffusion_coefficient(tamsd, {0:t0, 1:t1}, states))
+    print(f"\n\nFile name: {FOLDER.split('/')[-1]}")
+    print("diffusion coefficient of states", diffusion_coefficient(tamsd, {0:t0, 1:t1}, states))
     print(f"calculated until 0: {t0}sec with nb of data {nb_0}  and  1: {t1}sec with nb of data {nb_1}")
 
 

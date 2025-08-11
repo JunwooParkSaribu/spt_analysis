@@ -173,4 +173,12 @@ axs[1].legend(custom_lines, legend_labels, title='KS test')
 plt.tight_layout()
 
 
+#p7: Duration of trajectories for each state and condition
+plt.figure(f'p7', figsize=(14, 7))
+p7 = sns.lineplot(data=analysis_data1, x="condition", y="duration", hue="state")
+p7.set_title(f'Duration of trajectories for each state')
+plt.xticks(rotation=90)
+plt.tight_layout()
+
+
 plt.show()

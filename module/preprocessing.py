@@ -114,7 +114,7 @@ def preprocessing(data, pixelmicrons, framerate, cutoff, tamsd_calcul=True, colo
                 sub_trajectory.x *= pixelmicrons
                 sub_trajectory.y *= pixelmicrons
                 sub_trajectory.z *= pixelmicrons 
-                bi_add_K *= (pixelmicrons**2/framerate**bi_add_alpha) #TODO: check again
+                #bi_add_K *= (pixelmicrons**2/framerate**bi_add_alpha) #TODO: check again
 
                 frame_diffs = sub_trajectory.frame.iloc[1:].to_numpy() - sub_trajectory.frame.iloc[:-1].to_numpy()
                 duration = np.sum(frame_diffs) * framerate
