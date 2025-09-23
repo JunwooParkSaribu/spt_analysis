@@ -147,9 +147,9 @@ fig, axs = plt.subplots(1, 2, num=f'p6', figsize=(18, 9))
 sns.histplot(data=analysis_data3, x='angles', stat='proportion', hue='condition', common_norm=False, bins=number_of_bins, kde=True, ax=axs[0], kde_kws={'bw_adjust': 1})
 sns.ecdfplot(data=analysis_data3, x='angles', stat='proportion', hue='condition', ax=axs[1])
 axs[0].set_title(f'angle histogram')
-axs[0].set_xlabel(r'clock-wise angle (degree)')
+axs[0].set_xlabel(r'Angle (degree)')
 axs[1].set_title(f'angle CDF')
-axs[1].set_xlabel(r'clock-wise angle (degree)')
+axs[1].set_xlabel(r'Angle (degree)')
 cmap = mpl.colormaps['cividis']
 custom_lines = [Line2D([0], [0], color=cmap(i/(len(CONDITIONS) - 1)), lw=2) for i in range(len(CONDITIONS) - 1)]
 legend_labels = []
