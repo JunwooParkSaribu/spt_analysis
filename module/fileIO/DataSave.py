@@ -1,121 +1,3 @@
-import csv
-import os
-
-
-def save_report(data: list, path='', all=False) -> list:
-    """
-    @params : data(list), path(String), all(boolean)
-    @return : list of saved report names(list)
-    Save reports in a given path.
-    """
-    histones = {}
-    report_names = []
-
-    for chunked_data in data:
-        histones |= chunked_data
-
-    if not all:
-        histone_names = list(histones.keys())
-        filenames = set()
-        for histone in histone_names:
-            filenames.add(histone.split('\\')[-1].split('@')[0])
-
-        for filename in filenames:
-            h = {}
-            for histone in histone_names:
-                if filename in histone:
-                    h[histone] = histones[histone]
-            write_file_name = f'{path}/{filename}.csv'
-            with open(write_file_name, 'w', newline='') as f:
-                report_names.append(write_file_name)
-                fieldnames = ['filename', 'h2b_id', 'predicted_class_id', 'predicted_class_name', 'probability',
-                              'maximum_radius', 'first_x_position', 'first_y_position']
-                writer = csv.DictWriter(f, fieldnames=fieldnames)
-                writer.writeheader()
-
-                for i, key in enumerate(h):
-                    trajectory = histones[key].get_trajectory()
-                    first_x_pos = trajectory[0][0]
-                    first_y_pos = trajectory[0][1]
-                    file_name = histones[key].get_file_name()
-                    h2b_id = histones[key].get_id()
-                    pred_class_id = histones[key].get_predicted_label()
-                    max_r = histones[key].get_max_radius()
-                    proba = histones[key].get_predicted_proba()
-
-                    pred_class_name = 'unidentified'
-                    if pred_class_id == 0:
-                        pred_class_name = 'Immobile'
-                    if pred_class_id == 1:
-                        pred_class_name = 'Hybrid'
-                    if pred_class_id == 2:
-                        pred_class_name = 'Mobile'
-
-                    writer.writerow({'filename':file_name, 'h2b_id':h2b_id, 'predicted_class_id':pred_class_id,
-                                     'predicted_class_name':pred_class_name, 'probability':proba, 'maximum_radius':max_r,
-                                     'first_x_position':first_x_pos, 'first_y_position':first_y_pos})
-    else:
-        write_file_name = f'{path}/prediction_all.csv'
-        with open(write_file_name, 'w', newline='') as f:
-            report_names.append(write_file_name)
-            fieldnames = ['filename', 'h2b_id', 'predicted_class_id', 'predicted_class_name', 'probability',
-                          'maximum_radius', 'first_x_position', 'first_y_position']
-            writer = csv.DictWriter(f, fieldnames=fieldnames)
-            writer.writeheader()
-
-            for i, key in enumerate(histones):
-                trajectory = histones[key].get_trajectory()
-                first_x_pos = trajectory[0][0]
-                first_y_pos = trajectory[0][1]
-                file_name = histones[key].get_file_name()
-                h2b_id = histones[key].get_id()
-                pred_class_id = histones[key].get_predicted_label()
-                max_r = histones[key].get_max_radius()
-                proba = histones[key].get_predicted_proba()
-
-                pred_class_name = 'unidentified'
-                if pred_class_id == 0:
-                    pred_class_name = 'Immobile'
-                if pred_class_id == 1:
-                    pred_class_name = 'Hybrid'
-                if pred_class_id == 2:
-                    pred_class_name = 'Mobile'
-
-                writer.writerow({'filename': file_name, 'h2b_id': h2b_id, 'predicted_class_id': pred_class_id,
-                                 'predicted_class_name': pred_class_name, 'probability': proba, 'maximum_radius': max_r,
-                                 'first_x_position': first_x_pos, 'first_y_position': first_y_pos})
-    return report_names
-
-
-def write_model_info(training_model, path: str, history: list, nb_histones: int, date: str) -> str:
-    """
-    @params : model(tensorflow model object), path(String), history(list), nb_histones(Integer), data(String)
-    @return : saved model name(String)
-    Save the logs and the history of the model and return the model name.
-    """
-    new_model_num = 0
-    try:
-        if os.path.isdir(path):
-            contents = os.listdir(path)
-            for content in contents:
-                if 'model' in content:
-                    model_num = int(content.split('_')[0].split('model')[-1])
-                    new_model_num = max(new_model_num, model_num)
-            modelname = f'model{new_model_num + 1}'
-        training_model.save(f'{path}/{modelname}')
-    except Exception as e:
-        print('Model directory creation err')
-        print(e)
-
-    with open(f'{path}/{modelname}/log.txt', 'w') as info_file:
-        info_file.write(f'{date}, number of trained h2bs:{str(nb_histones)}\n')
-        info_file.write(f'train history, test history, train_acc, test_acc\n')
-        for line_num in range(len(history[0])):
-            info_file.write(f'{str(history[0][line_num])}\t{str(history[1][line_num])}\t'
-                            f'{str(history[2][line_num])}\t{str(history[3][line_num])}\n')
-    return modelname
-
-
 def write_trxyt(file: str, trajectory_list: list, pixel_microns=1.0, frame_rate=1.0):
     try:
         with open(file, 'w', encoding="utf-8") as f:
@@ -140,3 +22,33 @@ def write_trajectory(file: str, trajectory_list: list):
     except Exception as e:
         print(f"Unexpected error, check the file: {file}")
         print(e)
+
+
+def trxyt_to_csv(file: str, pixel_microns=1.0, frame_rate=1.0, to_frame=False) -> dict | list:
+    """
+    @params : filename(String), cutoff value(Integer)
+    @return : dictionary of H2B objects(Dict)
+    Read a single trajectory file and return the dictionary.
+    key is consist of filename@id and the value is H2B object.
+    Dict only keeps the histones which have the trajectory length longer than cutoff value.
+    """
+    filetypes = ['trxyt', 'trx']
+    # Check filetype.
+    assert file.strip().split('.')[-1].lower() in filetypes
+    new_lines = "traj_idx,frame,x,y,z\n"
+    # Read file and store the trajectory and time information in H2B object
+    if file.strip().split('.')[-1].lower() in ['trxyt', 'trx']:
+        tmp = {}
+        with open(file, 'r', encoding="utf-8") as f:
+            input = f.read()
+        lines = input.strip().split('\n')
+        for line in lines:
+            temp = line.split('\t')
+            x_pos = float(temp[1].strip()) * pixel_microns
+            y_pos = float(temp[2].strip()) * pixel_microns
+            z_pos = 0. * pixel_microns
+            time_step = float(temp[3].strip()) * frame_rate
+            new_lines += f"{temp[0]},{time_step},{x_pos},{y_pos},{z_pos}\n"
+
+    with open(f"{file.split(".trxyt")[0]}_traces.csv", "w") as f:
+        f.write(new_lines)

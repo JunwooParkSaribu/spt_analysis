@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 import glob
+import os
 from module.TrajectoryObject import TrajectoryObj
 
 
@@ -11,21 +12,40 @@ def read_h5(file):
     df_read = df_read.dropna()
     convert_dict = {'state': int, 'frame': int, 'traj_idx': int}
     df_read = df_read.astype(convert_dict)
+    if 'alpha' in df_read:
+        df_read = df_read.rename(columns={"alpha": "H"})
+        df_read['H'] /= 2.
     return df_read, metadata
 
 
-def read_csv(file):
-    csv_data = pd.read_csv(file)
-    col_names = ['frame', 'x', 'y', 'z', 'state', 'K', 'alpha']
-    z = np.zeros(len(csv_data.iloc[:, 1]))
+def read_csv(traj_file, diffusion_file):
+    csv_data = pd.read_csv(traj_file)
+    if os.path.exists(diffusion_file):
+        diff_data = pd.read_csv(diffusion_file)
+        Hs = []
+        Ks = []
+        for traj_idx in csv_data['traj_idx'].unique():
+            popp = diff_data[diff_data['traj_idx']==traj_idx]
+            traj_len = len(csv_data[csv_data['traj_idx'] == traj_idx])
+            Hs.extend([float(popp['H'].iloc[0])] * traj_len)
+            Ks.extend([float(popp['K'].iloc[0])] * traj_len)
+        K = np.array(Ks)
+        H = np.array(Hs)
+    else:
+        K = np.zeros(len(csv_data.iloc[:, 1]))
+        H = np.zeros(len(csv_data.iloc[:, 1]))
     state = np.zeros(len(csv_data.iloc[:, 1]), dtype=np.int32)
-    K = np.zeros(len(csv_data.iloc[:, 1]))
-    alpha = np.zeros(len(csv_data.iloc[:, 1]))
-    csv_data = csv_data.assign(z = z)
     csv_data = csv_data.assign(state = state)
     csv_data = csv_data.assign(K = K)
-    csv_data = csv_data.assign(alpha = alpha)
+    csv_data = csv_data.assign(H = H)
     convert_dict = {'state': int, 'frame': int}
+    csv_data = csv_data.astype(convert_dict)
+    return csv_data
+
+
+def read_diffusion_csv(file):
+    csv_data = pd.read_csv(file)
+    convert_dict = {'traj_idx': int, 'H': float, 'K': float}
     csv_data = csv_data.astype(convert_dict)
     return csv_data
 
@@ -72,9 +92,11 @@ def read_multiple_h5s(path:str):
 
 def read_multiple_csv(path):
     dfs = []
-    f_list = glob.glob(f'{path}/*.csv')
+    f_list = glob.glob(f'{path}/*_traces.csv')
+
     for f_idx, file in enumerate(f_list):
-        df = read_csv(file)
+        diffusion_file = path+"/"+file.split("/")[-1].split("_traces")[0]+"_diffusion.csv"
+        df = read_csv(file, diffusion_file)
         if 'traj_idx' in df:
             if f_idx != 0:
                 pure_f_name = file.split('/')[-1].split(f'.csv')[0]
@@ -94,6 +116,41 @@ def read_multiple_csv(path):
     print('')
     grouped_df = pd.concat(dfs) 
     return grouped_df
+
+
+def read_multiple_diffusion_csv(path, traj_csv=None, cutoff=None):
+    dfs = []
+    f_list = glob.glob(f'{path}/*_diffusion.csv')
+    for f_idx, file in enumerate(f_list):
+        df = read_diffusion_csv(file)
+        if 'traj_idx' in df:
+            if f_idx != 0:
+                pure_f_name = file.split('/')[-1].split(f'_diffusion.csv')[0]
+                pure_f_name += f'_traces'
+                df['filename'] = [pure_f_name] * len(df['traj_idx'])
+                traj_indices = df['traj_idx']
+                traj_indices = [f'{pure_f_name}_{idx}' for idx in traj_indices]
+                df['traj_idx'] = traj_indices
+            else:
+                pure_f_name = file.split('/')[-1].split(f'_diffusion.csv')[0]
+                pure_f_name += f'_traces'
+                df['filename'] = [pure_f_name] * len(df['traj_idx'])
+                traj_indices = df['traj_idx']
+                traj_indices = [f'{pure_f_name}_{idx}' for idx in traj_indices]
+                df['traj_idx'] = traj_indices
+            dfs.append(df)
+        else:
+            print(f'** Couldn\'t find \'traj_idx\' column in the {file} -> skipped. **')
+    print('')
+    grouped_df = pd.concat(dfs)
+    if cutoff is None and traj_csv is None:
+        return grouped_df
+    
+    filetered_df = pd.DataFrame({})
+    for single_traj_idx in traj_csv['traj_idx'].unique():
+        if cutoff[0] <= len(traj_csv[traj_csv['traj_idx'] == single_traj_idx]) <= cutoff[1]:
+            filetered_df = pd.concat((grouped_df[grouped_df['traj_idx']==single_traj_idx], filetered_df))
+    return filetered_df
 
 
 def andi2_label_parser(path):

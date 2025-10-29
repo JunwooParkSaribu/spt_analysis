@@ -8,7 +8,7 @@ import math
 import cv2
 
 
-def preprocessing(data, pixelmicrons, framerate, cutoff, tamsd_calcul=True, color_palette = ['red','cyan','green','blue','gray','pink']):
+def preprocessing(data, pixelmicrons, framerate, cutoff=[3, 99999], selected_state=0, div_time_gap=True, tamsd_calcul=True, color_palette = ['red','cyan','green','blue','gray','pink']):
     # load FreeTrace+Bi-ADD data without NaN (NaN where trajectory length is shorter than 5, default in BI-ADD)
     assert 'yellow' not in color_palette, "Yellow can't be included in the color palette, please exclude yellow."
     data = data.dropna()
@@ -17,6 +17,17 @@ def preprocessing(data, pixelmicrons, framerate, cutoff, tamsd_calcul=True, colo
     data = data.astype(convert_dict)
     traj_indices = pd.unique(data['traj_idx'])
     total_states = sorted(data['state'].unique())
+
+    if len(data) == 0:
+        print("*** Data is empty. ***")
+        return
+    
+    if selected_state not in total_states:
+        print("*** Selected state is not found in the data. Please try other state numbers. ***")
+        return
+    
+    if len(total_states) == 1:
+        color_palette = ['red']
 
     # state re-ordering w.r.t. K
     avg_ks = []
@@ -47,20 +58,29 @@ def preprocessing(data, pixelmicrons, framerate, cutoff, tamsd_calcul=True, colo
     state_markov = [[0 for _ in range(len(total_states))] for _ in range(len(total_states))]
     analysis_data1 = {}
     analysis_data1[f'mean_jump_d'] = []
-    analysis_data1[f'log10_K'] = []
-    analysis_data1[f'alpha'] = []
+    analysis_data1[f'K'] = []
+    analysis_data1[f'H'] = []
     analysis_data1[f'state'] = []
     analysis_data1[f'duration'] = []
     analysis_data1[f'traj_id'] = []
     analysis_data1[f'color'] = []
 
     analysis_data2 = {}
-    analysis_data2[f'displacements'] = []
+    analysis_data2[f'2d_displacement'] = []
     analysis_data2[f'state'] = []
 
     analysis_data3 = {}
-    analysis_data3[f'angles'] = []
+    analysis_data3[f'angle'] = []
     analysis_data3[f'state'] = []
+
+    analysis_data4 = {}
+    for st in total_states:
+        analysis_data4[st] = [[] for _ in range(200)]
+        analysis_data4[st][0].append(0)
+
+    analysis_data5 = {}
+    analysis_data5[f'1d_ratio'] = []
+    analysis_data5[f'state'] = []
 
     msd_ragged_ens_trajs = {st:[] for st in total_states}
     tamsd_ragged_ens_trajs = {st:[] for st in total_states}
@@ -77,132 +97,145 @@ def preprocessing(data, pixelmicrons, framerate, cutoff, tamsd_calcul=True, colo
     tamsd[f'state'] = []
     tamsd[f'time'] = []
 
-
     # get data from trajectories
     if tamsd_calcul:
-        print("** Computing of Ensemble-averaged TAMSD takes a few minutes **")
+        print("Computing TAMSD... This takes while depending on the length and number of trajectories.")
+        
     for traj_idx in tqdm(traj_indices, ncols=120, desc=f'Analysis', unit=f'trajectory'):
         single_traj = data.loc[data['traj_idx'] == traj_idx].copy()
         single_traj = single_traj.sort_values(by=['frame'])
 
-        # calculate state changes inside single trajectory
-        #before_st = single_traj.state.iloc[0]
-        #for st in single_traj.state:
-        #    state_graph[before_st][st]['weight'] += 1
-        #    before_st = st
-
-        # chunk into sub-trajectories
+        # chunk into sub-trajectories by frame gap
         before_st = single_traj.state.iloc[0]
-        chunk_idx = [0, len(single_traj)]
-        for st_idx, st in enumerate(single_traj.state):
-            if st != before_st:
-                chunk_idx.append(st_idx)
-            before_st = st
-        chunk_idx = sorted(chunk_idx)
+        frame_gaps = np.diff(single_traj.frame.to_numpy())
+        time_chunk_idx = [0, len(single_traj)]
+        if div_time_gap:
+            for f_idx, frame_gap in enumerate(frame_gaps):
+                if frame_gap > 1.0:
+                    time_chunk_idx.append(f_idx+1)
+            time_chunk_idx = sorted(time_chunk_idx)
 
-        for i in range(len(chunk_idx) - 1):
-            sub_trajectory = single_traj.iloc[chunk_idx[i]:chunk_idx[i+1]].copy()
-            
-            # trajectory length filter condition
-            if len(sub_trajectory) >= cutoff:
-                
-                # state of trajectory
-                state = sub_trajectory.state.iloc[0]
-                bi_add_alpha = sub_trajectory.alpha.iloc[0]
-                bi_add_K = sub_trajectory.K.iloc[0]
+        for i in range(len(time_chunk_idx) - 1):
+            time_chunked_single_traj = single_traj.iloc[time_chunk_idx[i]:time_chunk_idx[i+1]].copy()
 
-                # convert from pixel-coordinate to micron.
-                sub_trajectory.x *= pixelmicrons
-                sub_trajectory.y *= pixelmicrons
-                sub_trajectory.z *= pixelmicrons 
-                #bi_add_K *= (pixelmicrons**2/framerate**bi_add_alpha) #TODO: check again
+            # chunk into sub-trajectories by state
+            before_st = time_chunked_single_traj.state.iloc[0]
+            state_chunk_idx = [0, len(time_chunked_single_traj)]
+            for st_idx, st in enumerate(time_chunked_single_traj.state):
+                if st != before_st:
+                    state_chunk_idx.append(st_idx)
+                before_st = st
+            state_chunk_idx = sorted(state_chunk_idx)
 
-                frame_diffs = sub_trajectory.frame.iloc[1:].to_numpy() - sub_trajectory.frame.iloc[:-1].to_numpy()
-                duration = np.sum(frame_diffs) * framerate
-                
-                if len(chunk_idx) == 2:
-                    state_graph[state][state]['count'] += 1
-                else:
-                    if i >= 1:
-                        state_graph[prev_state][state]['count'] += 1
-                        state_changing_duration[tuple([prev_state, state])].append(prev_duration)
-                    if i == len(chunk_idx) - 2:  # last state of chunked trjectory which is considered as non-state changing stae.
-                        state_graph[state][state]['count'] += 1 
-                prev_state = state
-                prev_duration = duration
+            for i in range(len(state_chunk_idx) - 1):
+                sub_trajectory = time_chunked_single_traj.iloc[state_chunk_idx[i]:state_chunk_idx[i+1]].copy()
+                # trajectory length filter condition
+                if cutoff[0] <= len(sub_trajectory) <= cutoff[1]:
+                    # state of trajectory
+                    state = sub_trajectory.state.iloc[0]
+                    fr_H = sub_trajectory.H.iloc[0]
+                    fr_K = sub_trajectory.K.iloc[0]
 
-                
-                # coordinate normalize
-                sub_trajectory.x -= sub_trajectory.x.iloc[0]
-                sub_trajectory.y -= sub_trajectory.y.iloc[0]
-                sub_trajectory.z -= sub_trajectory.z.iloc[0]
+                    # convert from pixel-coordinate to micron.
+                    sub_trajectory.x *= pixelmicrons
+                    sub_trajectory.y *= pixelmicrons
+                    sub_trajectory.z *= pixelmicrons 
+                    fr_K *= ((pixelmicrons**2)) #/ (framerate**fr_H))
 
-                # calcultae jump distances                
-                jump_distances = (np.sqrt(((sub_trajectory.x.iloc[1:].to_numpy() - sub_trajectory.x.iloc[:-1].to_numpy()) ** 2) / (sub_trajectory.frame.iloc[1:].to_numpy() - sub_trajectory.frame.iloc[:-1].to_numpy())
-                                         + ((sub_trajectory.y.iloc[1:].to_numpy() - sub_trajectory.y.iloc[:-1].to_numpy()) ** 2) / (sub_trajectory.frame.iloc[1:].to_numpy() - sub_trajectory.frame.iloc[:-1].to_numpy()) )) 
-                
+                    frame_diffs = sub_trajectory.frame.iloc[1:].to_numpy() - sub_trajectory.frame.iloc[:-1].to_numpy()
+                    duration = np.sum(frame_diffs) * framerate
 
-                # angles
-                x_vec = (sub_trajectory.x.iloc[1:].to_numpy() - sub_trajectory.x.iloc[:-1].to_numpy())
-                y_vec = (sub_trajectory.y.iloc[1:].to_numpy() - sub_trajectory.y.iloc[:-1].to_numpy())
-                vecs = np.vstack([x_vec, y_vec]).T
-                angles = [dot_product_angle(vecs[vec_idx], vecs[vec_idx+1]) for vec_idx in range(len(vecs) - 1)]
-
-
-                # MSD
-                copy_frames = sub_trajectory.frame.to_numpy()
-                copy_frames = copy_frames - copy_frames[0]
-                tmp_msd = []
-                for frame, sq_disp in zip(np.arange(0, copy_frames[-1], 1), ((sub_trajectory.x.to_numpy())**2 + (sub_trajectory.y.to_numpy())**2) / dim / 2):
-                    if frame in copy_frames:
-                        tmp_msd.append(sq_disp)
+                    if len(state_chunk_idx) == 2:
+                        state_graph[state][state]['count'] += 1
                     else:
-                        tmp_msd.append(None)
-                msd_ragged_ens_trajs[state].append(tmp_msd)
+                        if i >= 1:
+                            state_graph[prev_state][state]['count'] += 1
+                            state_changing_duration[tuple([prev_state, state])].append(prev_duration)
+                        if i == len(state_chunk_idx) - 2:  # last state of chunked trjectory which is considered as non-state changing stae.
+                            state_graph[state][state]['count'] += 1 
+                    prev_state = state
+                    prev_duration = duration
+                
+                    # coordinate rescale
+                    sub_trajectory.x -= sub_trajectory.x.iloc[0]
+                    sub_trajectory.y -= sub_trajectory.y.iloc[0]
+                    sub_trajectory.z -= sub_trajectory.z.iloc[0]
 
+                    # calcultae jump distances (assumption of Brownian particle if the trajectory is not divided by the gap in frames)               
+                    jump_distances = (np.sqrt(((sub_trajectory.x.iloc[1:].to_numpy() - sub_trajectory.x.iloc[:-1].to_numpy()) ** 2) / (sub_trajectory.frame.iloc[1:].to_numpy() - sub_trajectory.frame.iloc[:-1].to_numpy())
+                                            + ((sub_trajectory.y.iloc[1:].to_numpy() - sub_trajectory.y.iloc[:-1].to_numpy()) ** 2) / (sub_trajectory.frame.iloc[1:].to_numpy() - sub_trajectory.frame.iloc[:-1].to_numpy()) )) 
+                
+                    # angles
+                    x_vec = (sub_trajectory.x.iloc[1:].to_numpy() - sub_trajectory.x.iloc[:-1].to_numpy())
+                    y_vec = (sub_trajectory.y.iloc[1:].to_numpy() - sub_trajectory.y.iloc[:-1].to_numpy())
+                    vecs = np.vstack([x_vec, y_vec]).T
+                    angles = [dot_product_angle(vecs[vec_idx], vecs[vec_idx+1]) for vec_idx in range(len(vecs) - 1)]
+                    ratios = np.array([])
+                    for l in range(1, 2):
+                        r_tmp = np.concatenate([(x_vec[l::l] / x_vec[:-l:l]), (y_vec[l::l] / y_vec[:-l:l])])
+                        ratios = np.concatenate((ratios, r_tmp))
+                    #ratios = [0 if math.isnan(val) or math.isinf(val) else val for val in ratios]
 
-                # TAMSD
-                if tamsd_calcul:
-                    tamsd_tmp = []
-                    for lag in range(len(sub_trajectory)):
-                        if lag == 0:
-                            tamsd_tmp.append(0)
+                    # Ensemble averaged SD
+                    copy_frames = sub_trajectory.frame.to_numpy()
+                    copy_frames = copy_frames - copy_frames[0]
+                    tmp_msd = []
+                    for frame, sq_disp in zip(np.arange(0, copy_frames[-1], 1), ((sub_trajectory.x.to_numpy())**2 + (sub_trajectory.y.to_numpy())**2) / dim / 2):
+                        if frame in copy_frames:
+                            tmp_msd.append(sq_disp)
                         else:
-                            time_averaged = []
-                            for pivot in range(len(sub_trajectory) - lag):
-                                if lag == sub_trajectory.frame.iloc[pivot + lag] - sub_trajectory.frame.iloc[pivot]:
-                                    time_averaged.append(((sub_trajectory.x.iloc[pivot + lag] - sub_trajectory.x.iloc[pivot]) ** 2 + (sub_trajectory.y.iloc[pivot + lag] - sub_trajectory.y.iloc[pivot]) ** 2) / dim / 2)
-                            if len(time_averaged) > 0:
-                                tamsd_tmp.append(np.mean(time_averaged))
+                            tmp_msd.append(None)
+                    msd_ragged_ens_trajs[state].append(tmp_msd)
+
+
+                    # TAMSD
+                    if tamsd_calcul:
+                        tamsd_tmp = []
+                        for lag in range(len(sub_trajectory)):
+                            if lag == 0:
+                                tamsd_tmp.append(0)
                             else:
-                                tamsd_tmp.append(None)
-                else:
-                    tamsd_tmp = [0] * len(sub_trajectory)
-                tamsd_ragged_ens_trajs[state].append(tamsd_tmp)
+                                time_averaged = []
+                                for pivot in range(len(sub_trajectory) - lag):
+                                    if lag == (sub_trajectory.frame.iloc[pivot + lag] - sub_trajectory.frame.iloc[pivot]):
+                                        time_averaged.append(((sub_trajectory.x.iloc[pivot + lag] - sub_trajectory.x.iloc[pivot]) ** 2 + (sub_trajectory.y.iloc[pivot + lag] - sub_trajectory.y.iloc[pivot]) ** 2) / dim / 2)
+                                        analysis_data4[state][lag].append((sub_trajectory.x.iloc[pivot + lag] - sub_trajectory.x.iloc[pivot]))
+                                        analysis_data4[state][lag].append((sub_trajectory.y.iloc[pivot + lag] - sub_trajectory.y.iloc[pivot]))
+                                if len(time_averaged) > 0:
+                                    tamsd_tmp.append(np.mean(time_averaged))
+                                else:
+                                    tamsd_tmp.append(None)
+                    else:
+                        tamsd_tmp = [0] * len(sub_trajectory)
+                    tamsd_ragged_ens_trajs[state].append(tamsd_tmp)
 
 
-                if len(chunk_idx) > 2:
-                    analysis_data1[f'color'].append("yellow")
-                else:
-                    analysis_data1[f'color'].append(color_palette[state])
+                    if len(state_chunk_idx) > 2:
+                        analysis_data1[f'color'].append("yellow")
+                    else:
+                        analysis_data1[f'color'].append(color_palette[state])
 
-                # add data1 for the visualization
-                analysis_data1[f'mean_jump_d'].append(jump_distances.mean())
-                analysis_data1[f'log10_K'].append(np.log10(bi_add_K))
-                analysis_data1[f'alpha'].append(bi_add_alpha)
-                analysis_data1[f'state'].append(state)
-                analysis_data1[f'duration'].append(duration)
-                analysis_data1[f'traj_id'].append(sub_trajectory.traj_idx.iloc[0])
-
-
-                # add data2 for the visualization
-                analysis_data2[f'displacements'].extend(list(jump_distances))
-                analysis_data2[f'state'].extend([sub_trajectory.state.iloc[0]] * len(list(jump_distances)))
+                    # add data1 for the visualization
+                    analysis_data1[f'mean_jump_d'].append(jump_distances.mean())
+                    analysis_data1[f'K'].append(fr_K)
+                    analysis_data1[f'H'].append(fr_H)
+                    analysis_data1[f'state'].append(state)
+                    analysis_data1[f'duration'].append(duration)
+                    analysis_data1[f'traj_id'].append(sub_trajectory.traj_idx.iloc[0])
 
 
-                # add data3 for angles
-                analysis_data3[f'angles'].extend(list(angles))
-                analysis_data3[f'state'].extend([sub_trajectory.state.iloc[0]] * len(list(angles)))
+                    # add data2 for the visualization
+                    analysis_data2[f'2d_displacement'].extend(list(jump_distances))
+                    analysis_data2[f'state'].extend([sub_trajectory.state.iloc[0]] * len(list(jump_distances)))
+
+                    # add data3 for angles
+                    analysis_data3[f'angle'].extend(list(angles))
+                    analysis_data3[f'state'].extend([sub_trajectory.state.iloc[0]] * len(list(angles)))
+
+                    # add data5 for ratio (consecutive displacements)
+                    analysis_data5[f'1d_ratio'].extend(list(ratios))
+                    analysis_data5[f'state'].extend([sub_trajectory.state.iloc[0]] * len(list(ratios)))
+
 
 
     # calculate average of msd and tamsd for each state
@@ -263,6 +296,7 @@ def preprocessing(data, pixelmicrons, framerate, cutoff, tamsd_calcul=True, colo
     analysis_data1 = pd.DataFrame(analysis_data1).astype({'state': int, 'duration': float, 'traj_id':str})
     analysis_data2 = pd.DataFrame(analysis_data2)
     analysis_data3 = pd.DataFrame(analysis_data3)
+    analysis_data5 = pd.DataFrame(analysis_data5)
     msd = pd.DataFrame(msd)
     tamsd = pd.DataFrame(tamsd)
 
@@ -270,7 +304,7 @@ def preprocessing(data, pixelmicrons, framerate, cutoff, tamsd_calcul=True, colo
         tamsd = None
         
     print('** preprocessing finished **')
-    return analysis_data1, analysis_data2, analysis_data3, state_markov, state_graph, msd, tamsd, total_states, state_changing_duration
+    return analysis_data1, analysis_data2, analysis_data3, analysis_data4, analysis_data5, state_markov, state_graph, msd, tamsd, total_states, state_changing_duration
 
 
 def get_groundtruth_with_label(folder, label_folder, pixelmicrons, framerate, cutoff, tamsd_calcul=True):
@@ -475,7 +509,7 @@ def get_groundtruth_with_label(folder, label_folder, pixelmicrons, framerate, cu
     return analysis_data1, analysis_data2, state_markov, state_graph, msd, tamsd, total_states
 
 
-def count_cumul_trajs_with_roi(data:pd.DataFrame|str, roi_file:str|None, start_frame=1, end_frame=100, cutoff=5):
+def count_cumul_trajs_with_roi(data:pd.DataFrame|str, roi_file:str|None, start_frame=1, end_frame=100, cutoff=[3, 9999]):
     from roifile import ImagejRoi
     """
     Cropping trajectory result with ROI(region of interest) or frames.
@@ -513,7 +547,7 @@ def count_cumul_trajs_with_roi(data:pd.DataFrame|str, roi_file:str|None, start_f
             x = single_traj['x'].iloc[0]
             y = single_traj['y'].iloc[0]
             t = single_traj['frame'].iloc[0]
-            if t in coords and len(single_traj) >= cutoff:
+            if t in coords and cutoff[0] <= len(single_traj) <= cutoff[1]:
                 coords[t].append([x, y])
             observed_max_t = max(t, observed_max_t)
             observed_min_t = min(t, observed_min_t)
@@ -525,7 +559,7 @@ def count_cumul_trajs_with_roi(data:pd.DataFrame|str, roi_file:str|None, start_f
             x = xyz[:, 0][0]
             y = xyz[:, 1][0]
             t = int(trajectory.get_times()[0])
-            if t in coords and len(xyz) >= cutoff:
+            if t in coords and cutoff[0] <= len(xyz) <= cutoff[1]:
                 coords[t].append([x, y])
             observed_max_t = max(t, observed_max_t)
             observed_min_t = min(t, observed_min_t)
@@ -537,7 +571,7 @@ def count_cumul_trajs_with_roi(data:pd.DataFrame|str, roi_file:str|None, start_f
             x = single_traj['x'].iloc[0]
             y = single_traj['y'].iloc[0]
             t = single_traj['frame'].iloc[0]
-            if t in coords and len(single_traj) >= cutoff:
+            if t in coords and cutoff[0] <= len(single_traj) <= cutoff[1]:
                 coords[t].append([x, y])
             observed_max_t = max(t, observed_max_t)
             observed_min_t = min(t, observed_min_t)
@@ -675,3 +709,54 @@ def dot_product_angle(v1, v2):
     if ang == np.inf or ang == np.nan or math.isnan(ang):
         return 0
     return 180 - ang
+
+
+def pdf_cauchy(u, h, t=1, s=1):
+    assert 0 < h < 1
+    return 1/(np.pi * np.sqrt(1-(2**(2*h-1)-1)**2)) * 1 / ( (u - (2**(2*h-1) - 1)*(t/s)**h)**2 / ((1 - (2**(2*h-1)-1)**2)*np.sqrt((t/s)**(2*h))) + (np.sqrt((t/s)**(2*h))))
+
+
+def cdf_cauchy(u, h, t=1, s=1):
+    assert 0 < h < 1
+    val = np.arctan( (2*(s**h)*u + (t**h)*(2 - 2**(2*h))) / ((t**h) * np.sqrt(2**(2*h+2) - 2**(4*h))) ) / np.pi + 0.5
+    return val
+
+
+def inv_cdf_cauchy(proba, h, t=1, s=1):
+    assert 0 < h < 1
+    denom = ((t**h) * np.sqrt(2**(2*h+2) - 2**(4*h)))
+    a = (2*(s**h)) / denom
+    return (np.tan(np.pi * proba - np.pi * 0.5) / a) - ((t**h)*(2 - 2**(2*h)) / 2*(s**h))
+
+
+def pdf_cauchy_2mixture(x, h1, h2, alpha, beta):
+    return beta*(alpha*pdf_cauchy(x, h1) + (1-alpha)*pdf_cauchy(x, h2))
+
+
+def cdf_cauchy_2mixture(x, h1, h2, alpha, beta):
+    return beta*(alpha*cdf_cauchy(x, h1) + (1-alpha)*cdf_cauchy(x, h2))
+
+
+def pdf_cauchy_3mixture(x, h1, h2, h3, alpha1, alpha2, alpha3, beta):
+    return beta*(alpha1*pdf_cauchy(x, h1) + (alpha2)*pdf_cauchy(x, h2) + (alpha3)*pdf_cauchy(x, h3))
+
+
+def cdf_cauchy_1mixture(x, h1, alpha):
+    return alpha*cdf_cauchy(x, h1)
+
+
+def pdf_cauchy_1mixture(x, h1, alpha):
+    return alpha*pdf_cauchy(x, h1)
+
+
+def cauchy_location(h1, t=1, s=1):
+    return (2**(2*h1-1) - 1)*(t/s)**h1
+
+
+def func_to_fit(func, x, params):
+    return func(x, *params)
+
+
+def func_to_minimise(params, func, x, y):
+    y_pred = func_to_fit(func, x, params)
+    return np.sum(abs(y_pred - y))
