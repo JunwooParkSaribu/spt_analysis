@@ -6,7 +6,9 @@ import cv2
 import matplotlib.colors as mcolors
 import matplotlib.patches as mpatches
 import matplotlib as mpl
+import matplotlib.pyplot as plt
 from tqdm import tqdm
+from module.preprocessing import dot_product_angle
 
 
 def trajectory_visualization(original_data:pd.DataFrame, analysis_data1:pd.DataFrame, 
@@ -17,6 +19,7 @@ def trajectory_visualization(original_data:pd.DataFrame, analysis_data1:pd.DataF
     color_maps = {}
     color_maps_plot = {}
     roi_center = None
+    angle_circle_radius = 10
 
     min_x = original_data['x'].min()
     min_y = original_data['y'].min()
@@ -24,7 +27,9 @@ def trajectory_visualization(original_data:pd.DataFrame, analysis_data1:pd.DataF
     max_y = original_data['y'].max()
     x_width = int(((max_x - min_x) * scale))
     y_width = int(((max_y - min_y) * scale))
-    image = np.ones((y_width, x_width, 4)).astype(np.uint8)
+    traj_image = np.ones((y_width, x_width, 4)).astype(np.uint8)
+    angle_image = np.ones((y_width, x_width, 4)).astype(np.uint8)
+    angle_cmap = plt.get_cmap('jet')
 
     if len(roi) > 4:
         from roifile import ImagejRoi
@@ -33,7 +38,8 @@ def trajectory_visualization(original_data:pd.DataFrame, analysis_data1:pd.DataF
         for i in range(len(contours) - 1):
             prev_pt = (np.array([contours[i][0] - min_x, contours[i][1] - min_y])*scale).astype(int)
             next_pt = (np.array([contours[i+1][0] - min_x, contours[i+1][1] - min_y])*scale).astype(int)
-            cv2.circle(image, next_pt, thickness+1, (128, 128, 128, 255), -1)
+            cv2.circle(traj_image, next_pt, thickness+1, (128, 128, 128, 255), -1)
+            cv2.circle(angle_image, next_pt, thickness+1, (128, 128, 128, 255), -1)
             roi_center += next_pt
         roi_center = roi_center.astype(float)
         roi_center /= len(contours)
@@ -57,9 +63,9 @@ def trajectory_visualization(original_data:pd.DataFrame, analysis_data1:pd.DataF
                     if arrow:
                         if color_for_roi and roi_center is not None:
                             if np.sqrt(np.sum((next_pt - roi_center)**2)) < np.sqrt(np.sum((prev_pt - roi_center)**2)):
-                                cv2.arrowedLine(image, prev_pt, next_pt, (0, 0, 255, 255), thickness)
+                                cv2.arrowedLine(traj_image, prev_pt, next_pt, (0, 0, 255, 255), thickness)
                             else:
-                                cv2.arrowedLine(image, prev_pt, next_pt, (0, 255, 255, 255), thickness)
+                                cv2.arrowedLine(traj_image, prev_pt, next_pt, (0, 255, 255, 255), thickness)
                             """
                             from module.preprocessing import dot_product_angle
                             angle = dot_product_angle(next_pt - prev_pt, roi_center - prev_pt)
@@ -69,17 +75,29 @@ def trajectory_visualization(original_data:pd.DataFrame, analysis_data1:pd.DataF
                                 cv2.arrowedLine(image, prev_pt, next_pt, (0, 255, 255), thickness)
                             """
                         else:
-                            cv2.arrowedLine(image, prev_pt, next_pt, traj_color, thickness)
+                            cv2.arrowedLine(traj_image, prev_pt, next_pt, traj_color, thickness)
                     else:
-                        cv2.line(image, prev_pt, next_pt, traj_color, thickness)
+                        cv2.line(traj_image, prev_pt, next_pt, traj_color, thickness)
+
+                for i in range(len(pts)-2):
+                    prev_vec = pts[i+1] - pts[i]
+                    next_vec = pts[i+2] - pts[i+1]
+                    angle_degree = dot_product_angle(prev_vec, next_vec)
+                    angle_color = angle_cmap((180 - angle_degree) / 180)
+                    cv2.circle(angle_image, center=(pts[i+1][0], pts[i+1][1]), radius=angle_circle_radius,
+                               color=(int(angle_color[2]*255), int(angle_color[1]*255), int(angle_color[0]*255), 64), thickness=-1)
+
+
+                    
     if scalebar:
-        cv2.line(image, [int(max(0, x_width - 2*scale - int(scale/pixelmicron))), int(max(0, y_width - 2*scale))], [int(max(0, x_width - 2*scale)) , int(max(0, y_width - 2*scale))], (255, 255, 255, 255), 6)
+        cv2.line(traj_image, [int(max(0, x_width - 2*scale - int(scale/pixelmicron))), int(max(0, y_width - 2*scale))], [int(max(0, x_width - 2*scale)) , int(max(0, y_width - 2*scale))], (255, 255, 255, 255), 6)
+        cv2.line(angle_image, [int(max(0, x_width - 2*scale - int(scale/pixelmicron))), int(max(0, y_width - 2*scale))], [int(max(0, x_width - 2*scale)) , int(max(0, y_width - 2*scale))], (255, 255, 255, 255), 6)
             
-    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    traj_image = cv2.cvtColor(traj_image, cv2.COLOR_BGRA2RGBA)
     color_maps['yellow'] = 'transitioning'
     color_maps_plot['transitioning'] = 'yellow'
     patches = [mpatches.Patch(color=c,label=color_maps[c]) for c in color_maps]
-    return image, patches, color_maps, color_maps_plot
+    return traj_image, angle_image, patches, color_maps, color_maps_plot
 
 
 def quantification(window_size):

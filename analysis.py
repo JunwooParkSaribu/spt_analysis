@@ -59,15 +59,15 @@ analysis_data1, analysis_data2, analysis_data3, analysis_data4, \
                                                                                                            selected_state=STATE_TO_PLOT,
                                                                                                            tamsd_calcul=True,
                                                                                                            color_palette=color_palette)
-trajectory_image, legend_patch, cmap_for_graph, cmap_for_plot = trajectory_visualization(original_data,
-                                                                                         analysis_data1,
-                                                                                         CUTOFF,
-                                                                                         PIXELMICRONS,
-                                                                                         resolution_multiplier=traj_img_resolution, 
-                                                                                         roi='', 
-                                                                                         scalebar=True,
-                                                                                         arrow=False,
-                                                                                         color_for_roi=False)
+trajectory_image, angle_image, legend_patch, cmap_for_graph, cmap_for_plot = trajectory_visualization(original_data,
+                                                                                                      analysis_data1,
+                                                                                                      CUTOFF,
+                                                                                                      PIXELMICRONS,
+                                                                                                      resolution_multiplier=traj_img_resolution, 
+                                                                                                      roi='',
+                                                                                                      scalebar=True,
+                                                                                                      arrow=False,
+                                                                                                      color_for_roi=False)
 
 
 """
@@ -245,11 +245,14 @@ plt.tight_layout()
 
 
 #p11: Trajectory image with respect to each state.
-plt.figure(f"p11", dpi=figure_resolution_in_dpi)
-plt.imshow(trajectory_image)
-plt.legend(handles=legend_patch, loc='upper right', borderaxespad=0.)
-plt.xticks([])
-plt.yticks([])
+fig, axs = plt.subplots(nrows=1, ncols=2, num=f"p11", dpi=figure_resolution_in_dpi)
+axs[0].imshow(trajectory_image)
+axs[1].imshow(angle_image)
+axs[0].legend(handles=legend_patch, loc='upper right', borderaxespad=0.)
+axs[0].set_xticks([])
+axs[0].set_yticks([])
+axs[1].set_xticks([])
+axs[1].set_yticks([])
 plt.tight_layout()
 
 
