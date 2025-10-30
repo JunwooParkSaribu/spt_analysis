@@ -85,9 +85,7 @@ def trajectory_visualization(original_data:pd.DataFrame, analysis_data1:pd.DataF
                     angle_degree = dot_product_angle(prev_vec, next_vec)
                     angle_color = angle_cmap(angle_degree / 180)
                     cv2.circle(angle_image, center=(pts[i+1][0], pts[i+1][1]), radius=angle_circle_radius,
-                               color=(int(angle_color[2]*255), int(angle_color[1]*255), int(angle_color[0]*255), 128), thickness=-1)
-
-
+                               color=(int(angle_color[2]*255), int(angle_color[1]*255), int(angle_color[0]*255), 200), thickness=-1)
                     
     if scalebar:
         cv2.line(traj_image, [int(max(0, x_width - 2*scale - int(scale/pixelmicron))), int(max(0, y_width - 2*scale))], [int(max(0, x_width - 2*scale)) , int(max(0, y_width - 2*scale))], (255, 255, 255, 255), 6)
