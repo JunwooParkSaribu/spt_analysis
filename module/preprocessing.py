@@ -75,7 +75,7 @@ def preprocessing(data, pixelmicrons, framerate, cutoff=[3, 99999], selected_sta
 
     analysis_data4 = {}
     for st in total_states:
-        analysis_data4[st] = [[] for _ in range(200)]
+        analysis_data4[st] = [[] for _ in range(9999)]
         analysis_data4[st][0].append(0)
 
     analysis_data5 = {}
