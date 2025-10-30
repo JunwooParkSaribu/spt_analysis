@@ -83,9 +83,9 @@ def trajectory_visualization(original_data:pd.DataFrame, analysis_data1:pd.DataF
                     prev_vec = pts[i+1] - pts[i]
                     next_vec = pts[i+2] - pts[i+1]
                     angle_degree = dot_product_angle(prev_vec, next_vec)
-                    angle_color = angle_cmap((180 - angle_degree) / 180)
+                    angle_color = angle_cmap(angle_degree / 180)
                     cv2.circle(angle_image, center=(pts[i+1][0], pts[i+1][1]), radius=angle_circle_radius,
-                               color=(int(angle_color[2]*255), int(angle_color[1]*255), int(angle_color[0]*255), 64), thickness=-1)
+                               color=(int(angle_color[2]*255), int(angle_color[1]*255), int(angle_color[0]*255), 128), thickness=-1)
 
 
                     
