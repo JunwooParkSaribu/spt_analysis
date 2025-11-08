@@ -23,18 +23,19 @@ Minor parameters.
 traj_img_resolution = 80  # Resolution factor of trajectory image. Too high value will exceeding your available space of RAM, resulting the process-kill.
 number_of_bins = 50   # Below are the general settings of result plots, you can change here or directly for each plot.
 bootstrap_bins = 300
-figure_resolution_in_dpi = 200
+figure_resolution_in_dpi = 300
 figure_font_size = 20
 y_lim_for_percent = [0, 35]
 x_lim_for_mean_jump_distances = [0, 5]
 color_palette = ['red','cyan','green','blue','gray','pink']  # Colors for each state of trajectory type
 
 
+plt.rc('xtick', labelsize=figure_font_size) 
+plt.rc('ytick', labelsize=figure_font_size) 
 
-
-nb_traj = 100
+nb_traj = 5000
 noise = 0.0
-theoretical_H = 0.75
+theoretical_H = 0.5
 theoretical_K = 1.0
 
 PIXELMICRONS = 1  # Length of pixel in micrometer. (0.16 -> the length of each pixel is 0.16 micrometer, it varies depending on microscopy.)
@@ -55,6 +56,7 @@ gaussian_cdf = [[] for _ in range(total_times)]
 emp_pdf = [[] for _ in range(total_times)]
 emp_cdf = [[] for _ in range(total_times)]
 for exp_number in total_exps:
+    print(f"EXP NUMBER: {exp_number} / {total_exps}")
     FOLDER = f'fbm_simulations/{nb_traj}_{noise}_{theoretical_H}/{exp_number}'  # The folder containing .h5(BI-ADD) or .csv(FreeTrace) files.
     original_data = read_multiple_csv(path=FOLDER)   # Read FreeTrace results
 
@@ -77,7 +79,6 @@ for exp_number in total_exps:
     for time_lag in times[:-1]:
         #empirical_msds[time_lag].append(emp_msd[time_lag])
         lengths[time_lag].append(length_hist[time_lag])
-
 
     #p14: 1D ratio distribution with Cauchy fitting for the selecetd state.
     vline_ymax = 0.018
@@ -181,7 +182,7 @@ for idx in range(len(gaussian_pdf)):
         empirical_stds[idx].append(0)
     if len(lengths[idx]) == 0:
         lengths[idx].append(0)
-
+lengths = lengths[2:]
 
 
 emp_msd_avgs = [np.mean(vals) for vals in empirical_msds]
@@ -199,7 +200,7 @@ gauss_cdf_stds = [np.std(vals) for vals in gaussian_cdf]
 length_stds = [np.std(vals) for vals in lengths]
 
 fig, axs = plt.subplots(nrows=2, ncols=1, dpi=figure_resolution_in_dpi)
-axs[0].plot(np.arange(0, total_times, 1), curve(theoretical_K, theoretical_H, np.arange(0, total_times, 1) / FRAMERATE), c='green')
+axs[0].plot(np.arange(0, total_times, 1), curve(theoretical_K, theoretical_H, np.arange(0, total_times, 1) / FRAMERATE), c='green', zorder=0)
 #axs[0].plot(np.arange(0, total_times, 1), emp_msd_avgs, c='black')
 #axs[0].plot(np.arange(0, total_times, 1), emp_pdf_avgs, c='red')
 #axs[0].plot(np.arange(0, total_times, 1), emp_cdf_avgs, c='blue')
@@ -208,15 +209,18 @@ axs[0].plot(np.arange(0, total_times, 1), curve(theoretical_K, theoretical_H, np
 #axs[0].boxplot(empirical_msds, positions=np.arange(0, total_times, 1))
 #axs[0].boxplot(emp_cdf, positions=np.arange(0, total_times, 1))
 #axs[1].boxplot(lengths, positions=np.arange(0, total_times, 1))
-axs[0].errorbar(np.arange(0, total_times, 1), emp_msd_avgs, emp_msd_stds, linestyle='None', marker='X', capsize=5, c='black', alpha=0.7, ms=4)
-axs[0].errorbar(np.arange(0, total_times, 1), emp_pdf_avgs, emp_pdf_stds, linestyle='None', marker='o', capsize=5, c='red', alpha=0.7, ms=4)
-axs[0].errorbar(np.arange(0, total_times, 1), emp_cdf_avgs, emp_cdf_stds, linestyle='None', marker='P', capsize=5, c='blue', alpha=0.7, ms=4)
+axs[0].errorbar(np.arange(0, total_times, 1), emp_msd_avgs, emp_msd_stds, linestyle='None', marker='X', capsize=5, c='black', alpha=0.8, ms=4, zorder=1)
+#axs[0].errorbar(np.arange(0, total_times, 1), emp_pdf_avgs, emp_pdf_stds, linestyle='None', marker='o', capsize=5, c='blue', alpha=0.7, ms=4)
+axs[0].errorbar(np.arange(0, total_times, 1), emp_cdf_avgs, emp_cdf_stds, linestyle='None', marker='P', capsize=5, c='red', alpha=0.7, ms=4, zorder=20)
 
-axs[1].errorbar(np.arange(0, total_times, 1), length_avgs, length_stds, linestyle='None', marker='X', capsize=5, c='black', alpha=1.0, ms=4)
-axs[0].set_xlim([-0.5, 16.5])
-axs[1].set_xlim([-0.5, 16.5])
+axs[1].errorbar(np.arange(3, len(length_avgs)+3, 1), length_avgs, length_stds, linestyle='None', marker='X', capsize=5, c='black', alpha=1.0, ms=4)
+axs[0].set_xlim([-0.5, 18.5])
+axs[1].set_xlim([-0.5, 18.5])
+axs[0].set_ylim([-0.5, np.max(emp_cdf_avgs[:23]) + np.max(emp_cdf_stds[:23]) + 1])
 #axs[0].xaxis.set_major_locator(ticker.MultipleLocator(5))
 #axs[1].xaxis.set_major_locator(ticker.MultipleLocator(5))
+
+
 """
 for plotss, color in zip([empirical_msds, emp_pdf], ['black', 'red']):
     violin = axs[0].violinplot(plotss, positions=np.arange(0, total_times, 1),
@@ -227,5 +231,5 @@ for plotss, color in zip([empirical_msds, emp_pdf], ['black', 'red']):
         vp.set_edgecolor(color)
         vp.set_linewidth(1)
 """
-
-plt.show()
+plt.savefig(f"fbm_simulations/{nb_traj}_{noise}_{theoretical_H}.png", transparent=True)
+#plt.show()
