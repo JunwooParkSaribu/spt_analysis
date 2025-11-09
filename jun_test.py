@@ -30,12 +30,12 @@ x_lim_for_mean_jump_distances = [0, 5]
 color_palette = ['red','cyan','green','blue','gray','pink']  # Colors for each state of trajectory type
 
 
-plt.rc('xtick', labelsize=figure_font_size) 
+plt.rc('xtick', labelsize=figure_font_size)
 plt.rc('ytick', labelsize=figure_font_size) 
 
-nb_traj = 5000
-noise = 0.0
-theoretical_H = 0.5
+nb_traj = 1000
+noise = 0.5
+theoretical_H = 0.75
 theoretical_K = 1.0
 
 PIXELMICRONS = 1  # Length of pixel in micrometer. (0.16 -> the length of each pixel is 0.16 micrometer, it varies depending on microscopy.)
@@ -56,7 +56,7 @@ gaussian_cdf = [[] for _ in range(total_times)]
 emp_pdf = [[] for _ in range(total_times)]
 emp_cdf = [[] for _ in range(total_times)]
 for exp_number in total_exps:
-    print(f"EXP NUMBER: {exp_number} / {total_exps}")
+    print(f"EXP NUMBER: {exp_number} / {total_exps[-1]}")
     FOLDER = f'fbm_simulations/{nb_traj}_{noise}_{theoretical_H}/{exp_number}'  # The folder containing .h5(BI-ADD) or .csv(FreeTrace) files.
     original_data = read_multiple_csv(path=FOLDER)   # Read FreeTrace results
 
