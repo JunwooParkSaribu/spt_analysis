@@ -2,11 +2,13 @@ import seaborn as sns
 import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib as mpl
+from matplotlib import ticker
 from matplotlib.lines import Line2D
 from module.preprocessing import preprocessing
 from module.fileIO.DataLoad import read_multiple_csv, read_multiple_h5s
 from scipy.stats import bootstrap, ks_2samp, ecdf
 import numpy as np
+
 
 
 
@@ -24,13 +26,14 @@ STATE_TO_PLOT = 0  # State number to plot TAMSD and the Cauchy fitting on ratio 
 """
 Minor parameters.
 """
-traj_img_resolution = 80  # Resolution factor of trajectory image. Too high value will exceeding your available space of RAM, resulting the process-kill.
-number_of_bins = 50   # Below are the general settings of result plots, you can change here or directly for each plot.
-bootstrap_bins = 300
+formatter = ticker.ScalarFormatter(useMathText=True)  # formatter for scientific notation.
+formatter.set_scientific(True) 
+formatter.set_powerlimits((-1,1)) 
+disp_bin_width = 0.005  # bin width for displacments in micrometre.
+angle_bin_width = 10  # bin width for angles in degree.
 figure_resolution_in_dpi = 200
 figure_font_size = 20
-y_lim_for_percent = [0, 35]
-x_lim_for_mean_jump_distances = [0, 5]
+
 
 
 
@@ -78,9 +81,10 @@ print(f'\nanalysis_data1:\n', analysis_data1)
 
 #p1: Histogram with kde(kernel density estimation) plot of mean jump distance grouped by state.
 plt.figure(f'p1', dpi=figure_resolution_in_dpi)
-p1 = sns.histplot(data=analysis_data1, x=f'mean_jump_d', stat='percent', hue='condition', common_norm=False, bins=number_of_bins, kde=True)
+p1 = sns.histplot(data=analysis_data1, x=f'mean_jump_d', stat='count', hue='condition', common_norm=False, binwidth=disp_bin_width, kde=True)
 p1.set_xlabel(r'mean jump-distance($\mu m$)')
 p1.set_title(f'mean jump-distance for each condition')
+p1.yaxis.set_major_formatter(formatter)
 plt.yticks(fontsize=figure_font_size)
 plt.xticks(fontsize=figure_font_size)
 plt.xticks(rotation=90)
@@ -90,9 +94,10 @@ plt.tight_layout()
 
 #p2: 2D displacement histogram
 plt.figure(f'p2', dpi=figure_resolution_in_dpi)
-p2 = sns.histplot(data=analysis_data2, x='2d_displacement', stat='percent', hue='condition', common_norm=False, bins=number_of_bins, kde=True)
+p2 = sns.histplot(data=analysis_data2, x='2d_displacement', stat='count', hue='condition', common_norm=False, binwidth=disp_bin_width, kde=True)
 p2.set_title(f'2D displacement histogram')
 p2.set_xlabel(r'displacment($\mu m$)')
+p2.yaxis.set_major_formatter(formatter)
 plt.yticks(fontsize=figure_font_size)
 plt.xticks(fontsize=figure_font_size)
 plt.xticks(rotation=90)
@@ -130,14 +135,13 @@ for cd in analysis_data1['condition'].unique():
         bootstrapped_data['state'].extend([st] * len(bts.bootstrap_distribution))
         bootstrapped_data['condition'].extend([cd] * len(bts.bootstrap_distribution))
         bootstrapped_results.append(bts)
-p4 = sns.histplot(bootstrapped_data, x=f'averaged_mean_jump_distances', stat='percent', hue='condition', bins=bootstrap_bins, kde=False)
+p4 = sns.histplot(bootstrapped_data, x=f'averaged_mean_jump_distances', stat='count', hue='condition', binwidth=disp_bin_width, kde=False)
 p4.set_xlabel(r'bootstrapped mean jump-distances($\mu m$)')
 p4.set_title(f'bootstrapped mean jump-distances for each state')
+p4.yaxis.set_major_formatter(formatter)
 plt.yticks(fontsize=figure_font_size)
 plt.xticks(fontsize=figure_font_size)
 plt.xticks(rotation=90)
-plt.ylim(y_lim_for_percent)
-plt.xlim(x_lim_for_mean_jump_distances)
 plt.tight_layout()
 
 
@@ -158,8 +162,9 @@ if tamsds is not None:
 
 #p6: Angle histogram
 fig, axs = plt.subplots(1, 2, num=f'p6', figsize=(18, 9))
-sns.histplot(data=analysis_data3, x='angle', stat='proportion', hue='condition', common_norm=False, bins=number_of_bins, kde=True, ax=axs[0], kde_kws={'bw_adjust': 1})
+sns.histplot(data=analysis_data3, x='angle', stat='count', hue='condition', common_norm=False, binwidth=angle_bin_width, kde=True, ax=axs[0], kde_kws={'bw_adjust': 1})
 sns.ecdfplot(data=analysis_data3, x='angle', stat='proportion', hue='condition', ax=axs[1])
+axs[0].yaxis.set_major_formatter(formatter)
 axs[0].set_title(f'angle histogram')
 axs[0].set_xlabel(r'Angle (degree)')
 axs[1].set_title(f'angle CDF')
